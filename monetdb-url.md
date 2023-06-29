@@ -17,7 +17,7 @@ connect to the same database.
 The terms MAY, MUST, SHOULD, etc, in this document should be interpreted as
 described in [RFC2119][rfc2119].
 
-TODO BEFORE 0.2: actually write in the style of RFC2119.
+> TODO BEFORE 0.2: actually write in the style of RFC2119.
 
 When we speak of 'an implementation' or 'the implementation' we mean a MonetDB
 client such as mclient/libmapi, pymonetdb or monetdb-jdbc.
@@ -25,6 +25,11 @@ client such as mclient/libmapi, pymonetdb or monetdb-jdbc.
 [rfc2119]: https://datatracker.ietf.org/doc/html/rfc2119
 [rfc3986]: https://datatracker.ietf.org/doc/html/rfc3986
 
+> TODO BEFORE 0.2: sometimes I write that certain parameters should be preserved
+> so they will be present in the URL even if the implementation does not support
+> them. How useful is this in practice? Answer: it's not really useful in
+> practice but it is useful if we want to provide a standardized set of unit
+> tests that we can be reused between multiple implementations.
 
 ## Examples
 
@@ -171,11 +176,10 @@ These are the properties in a connection record:
 Note: the interpretation of the **tcp_host** field is different from the `host`
 component of the URL. See section [Connecting to MonetDB](#connecting-to-monetdb) for details.
 
-TODO BEFORE 0.1: make sure that the above is actually explained in the section referred to.
-
-TODO BEFORE 0.1: refer to [RFC 3986 section
-3.2.2](https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2).
-
+> TODO BEFORE 0.1: make sure that the above is actually explained in the section referred to.
+>
+> TODO BEFORE 0.1: refer to [RFC 3986 section
+> 3.2.2](https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2).
 
 Validity rule **V1**: all three properties **tcp_host**, **port** and
 **unix_sock** may be omitted but if **unix_sock** is present, neither
@@ -200,9 +204,9 @@ in the connection record.
   defaults to **client_key** if present, to allow for situations where the
   certificates are bundled with the key.
 
-TODO BEFORE 0.2: should there be a validity rule that says that **tls_cert**,
-**client_key** and **client_cert** can only be present if **use_tls** is set to
-True?
+> TODO BEFORE 0.2: should there be a validity rule that says that **tls_cert**,
+> **client_key** and **client_cert** can only be present if **use_tls** is set
+> to True?
 
 * Property **dbpath** is reserved for use with `monetdbe:` URLs.
 
@@ -230,8 +234,8 @@ possibly the user name into the connection record.
   values are `sql`, `mal`, `msql` and `profiler`. Implementations are not required
   to support all of them.
 
-TODO BEFORE 0.2: use the phrase "valid but may cause an error at connect time"
-more often.
+> TODO BEFORE 0.2: use the phrase "valid but may cause an error at connect time"
+> more often.
 
 * The properties **autocommit**, **default_schema**, **timezone**,
   **reply_size** and **binary** are used to override default settings after
@@ -348,7 +352,7 @@ With these values determined, the connection is set up as follows:
 
 ## Parsing the URL
 
-TODO BEFORE 0.2: Pick section names without a verb, this is a spec not a recipe
+> TODO BEFORE 0.2: Pick section names without a verb, this is a spec not a recipe
 
 The general form of a MonetDB URL is:
 
@@ -362,14 +366,14 @@ The URL is parsed into components according to the rules in [RFC 3986][rfc3986].
 We will use a monospaced font for URL components, e.g., `host, and continue to
 use bold face for connection record properties, e.g., **tcp_host**.
 
-TODO BEFORE 0.2: explicitly list the characters that may appear in a URL without
-percent-encoding, or refer to the relevant phrase in the [RFC][rfc3986].
-Note: we should allow the unescaped colons `:` in query parameters to facilitate
-things like `monetdbs://dbhost/demo?cert=C:\Certs\mycert.crt`. Pity we can't allow
-spaces.
-
-TODO BEFORE 0.2: are all components percent-decoded? For example, is
-`m%6Fnetdb:///demo` a valid URL?
+> TODO BEFORE 0.2: explicitly list the characters that may appear in a URL without
+> percent-encoding, or refer to the relevant phrase in the [RFC][rfc3986].
+> Note: we should allow the unescaped colons `:` in query parameters to facilitate
+> things like `monetdbs://dbhost/demo?cert=C:\Certs\mycert.crt`. Pity we can't allow
+> spaces.
+>
+> TODO BEFORE 0.2: are all components percent-decoded? For example, is
+> `m%6Fnetdb:///demo` a valid URL?
 
 If the scheme is `monetdb:`, **use_tls** is set to False. If it is `monetdbs:`,
 **use_tls** is set to True.
@@ -394,9 +398,10 @@ Together, the three rules above implement update rule **U1**.
 
 Property **database** is set to the value of component `database`, if present.
 
-TODO BEFORE 0.1: modify update rule **U1** to also clear **database**.
-Add a rule to clear **table_schema** and **table** if **database** is set.
-(But only if from a URL?)
+> TODO BEFORE 0.1: modify update rule **U1** to also clear **database**. Add a
+> rule to clear **table_schema** and **table** if **database** is set. (But only
+> if from a URL?)
+
 
 ### Query Parameters
 
@@ -437,33 +442,33 @@ the URL `monetdb:///demo?fetchsize=100&replysize=200&fetchsize=300`,
 | `debug`       | **xdebug**         | backward-compatibility alias for `xdebug`                   |
 | `logfile`     | **xlogfile**       | backward-compatibility alias for `xlogfile`                 |
 
-TODO BEFORE 0.2: should `maxprefetch` actually just be `prefetch`? Or should we
-just make it pymonetdb-specific xmaxprefetch or xprefetch? Note that JDBC also
-performs prefetch but the amount is currently not configurable.
-
-TODO BEFORE 0.2: various drivers have timeout parameters. Interpretation varies,
-sometimes only on connect, sometimes also on all socket reads and writes. Should
-we introduce distinct timeout properties for these cases? Or should we just
-specify that, for example, parameter `so_timeout` is defined to be an alias for
-`xso_timeout` and leave the possibly inconsistent interpretations to the
-individual implementation?
+> TODO BEFORE 0.2: should `maxprefetch` actually just be `prefetch`? Or should we
+> just make it pymonetdb-specific xmaxprefetch or xprefetch? Note that JDBC also
+> performs prefetch but the amount is currently not configurable.
+>
+> TODO BEFORE 0.2: various drivers have timeout parameters. Interpretation varies,
+> sometimes only on connect, sometimes also on all socket reads and writes. Should
+> we introduce distinct timeout properties for these cases? Or should we just
+> specify that, for example, parameter `so_timeout` is defined to be an alias for
+> `xso_timeout` and leave the possibly inconsistent interpretations to the
+> individual implementation?
 
 
 ## Implications for JDBC URLs
 
-TODO BEFORE 0.2: move this to a companion document
+> TODO BEFORE 0.2: move this to a companion document
 
 
 ## Classic MAPI URLs
 
-TODO BEFORE 0.2: move this to a companion document
+> TODO BEFORE 0.2: move this to a companion document
 
 
 ## Implications for pymonetdb
 
-TODO BEFORE 0.2: move this to a companion document
+> TODO BEFORE 0.2: move this to a companion document
 
 
 ## Implication for libmapi
 
-TODO BEFORE 0.2: move this to a companion document
+> TODO BEFORE 0.2: move this to a companion document
