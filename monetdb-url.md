@@ -417,9 +417,9 @@ If a property occurs more than once in the query parameters, all but the last
 instance are ignored.
 
 Note that some properties correspond to by more than one query parameter. For
-example, both `replysize` and `fetchsize` map to property **replysize**. With
+example, both `replysize` and `fetchsize` map to property **reply_size**. With
 the URL `monetdb:///demo?fetchsize=100&replysize=200&fetchsize=300`,
-**replysize** ends up with value 300.
+**reply_size** ends up with value 300.
 
 | Query Param   | Property           | Remark                                                      |
 | ------------- | ------------------ | ----------------------------------------------------------- |
@@ -458,6 +458,91 @@ the URL `monetdb:///demo?fetchsize=100&replysize=200&fetchsize=300`,
 
 > TODO BEFORE 0.2: move this to a companion document
 
+The format of the MonetDB JDBC URL as of version 3.3 is given in the release
+notes as:
+
+> `jdbc:monetdb://<hostname>[:<portnr>]/<databasename>[?<property>=<value>[&<property>=<value>]]`
+
+Apart from the query parameters, which we'll discuss below, this is compatible
+with the syntax proposed in this document.
+
+Percent encoding is not mentioned in the release notes but the implementation
+percent-decodes the query parameter string. Unfortunately, it decodes it before
+splitting on `&` but that is probably a bug. Instead, the implementation should
+first split on `&` and then percent-decode the individual property names and values.
+
+MonetDB JDBC does support Unix Domain sockets.
+
+JDBC API allows to pass properties as well as a URL. We need everything in the URL
+to have equivalent property. Add 'host', 'port', and 'database' properties.
+Why do we mention this?
+
+
+In the JDBC API there are three ways to create a connection: 1) from a URL,
+2) from a URL plus a Properties object, and 3) from a URL, a user name and a
+password. JDBC itself maps the latter case to a Properties object with a `user` and
+a `password` property. In our MonetDriver we parse the URL and insert
+`host`, `port` and database properties into the Properties object, plus
+a property for every query parameter. The resulting Properties object is then
+passed to MonetConnection.
+
+The JDBC API allows you to pass a URL and a
+[Properties](https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html)
+object. Instead of properties you can also pass user name and password, these
+get translated to a Properties object with `user` and `password` properties. Our
+`MonetDriver` parses the URL and overrides properties `host`, `port`,
+`database`, plus a property for every query parameter. The resulting Properties
+object is then passed to the `MonetConnection` constructor, which is
+package-private. It can be extracted using XXX
+
+The currently recognized query parameters are:
+
+```
+  #host
+  #port
+  #database
+  user=<login name>
+  password=<secret value>
+  so_timeout=<time in milliseconds>  default is: 0 (no timeout)
+  treat_clob_as_varchar=false        default is: true
+  treat_blob_as_binary=false         default is: true
+  language=<sql or mal>              default is: sql
+  fetchsize=<nr of rows>             default is: 250; -1 means fetch everything at once
+  autocommit=false                   default is: true
+  debug=true                         default is: false
+  logfile=<name of logfile>
+  hash=<SHA512, SHA384, SHA256 or SHA1>
+```
+
+Proposal: The Properties passed to MonetConnection by MonetDriver will
+use the Connection Record naming. Properties passed to MonetDriver will
+be added to connection record
+
+Or have explicit ConnectionRecord class?  Inner class of Driver?
+
+
+TODO BEFORE 0.2: implementation defined query parameters with underscore instead
+of x.
+
+TODO BEFORE 0.2: when do we error negative reply sizes etc?
+
+If we assume that we will first map the properties
+
+TODO BEFORE 0.2: should user and password be given to be valid?
+
+TODO BEFORE 0.2: note that many warnings are now errors. for example: invalid port.
+how can that be a warning?
+
+TODO BEFORE 0.2: drop passwd if user changed instead of set?
+to allow setting user in url and passwd in propertuy
+
+TODO BEFORE 0.2: valid means port is in range
+
+TODO BEFORE 0.2: what is effective binary if binary is null,
+
+TODO BEFORE 0.2: sqlnontransientconnectionexception
+
+TODO BEFORE 0.2: sql, mal,  add msql?
 
 ## Classic MAPI URLs
 
@@ -472,3 +557,30 @@ the URL `monetdb:///demo?fetchsize=100&replysize=200&fetchsize=300`,
 ## Implication for libmapi
 
 > TODO BEFORE 0.2: move this to a companion document
+
+
+## List of all connection record properties
+
+* autocommit
+* binary
+* client_cert
+* client_key
+* database
+* dbpath
+* default_schema
+* language
+* maxprefetch
+* password
+* port
+* reply_size
+* replysize
+* table
+* table_schema
+* tcp_host
+* timezone
+* tls_cert
+* unix_sock
+* use_tls
+* user
+* xdebug
+* xlogfile
