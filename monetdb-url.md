@@ -1,586 +1,424 @@
 # MonetDB URL Specification
 
-Version: 0.1pre
+Version: 0.2pre
 
 Status: Proposal
 
-This document defines the meaning of [URLs][rfc3986] with scheme `monetdb:` and `monetdbs:`
-and reserves scheme `monetdbe:` for a future version of the specification. It
-also defines an interpretation for a subset of the classic `mapi:monetdb:`
-URLs.
+This document defines the meaning of URLs with scheme `monetdb:` and
+`monetdbs:`, and reserves scheme `monetdbe:` for later. It also defines an
+interpretation for a subset of the classic `mapi:monetdb:` URLs used by libmapi,
+mclient and monetdbd, and for the `mapi:monetdb:` variant used by pymonetdb.
 
-We speak of a URL rather than a URI because the purpose of the MonetDB URL is not
-just to identify a given MonetDB, but especially to state how to connect to it.
-Also, it is not suitable as an identifier because there are many URL's that
-connect to the same database.
+We speak of a URL rather than a URI because the purpose of the MonetDB URL is
+not just to identify a given MonetDB instance, but in particular to state how to
+connect to it. Also, a MonetDB URL is not really suitable as an identifier
+because there are many ways to connect to the same database.
 
 The terms MAY, MUST, SHOULD, etc, in this document should be interpreted as
-described in [RFC2119][rfc2119].
-
-> TODO BEFORE 0.2: actually write in the style of RFC2119.
-
-When we speak of 'an implementation' or 'the implementation' we mean a MonetDB
-client such as mclient/libmapi, pymonetdb or monetdb-jdbc.
+described in [RFC 2119][rfc2119].
 
 [rfc2119]: https://datatracker.ietf.org/doc/html/rfc2119
 [rfc3986]: https://datatracker.ietf.org/doc/html/rfc3986
 
-> TODO BEFORE 0.2: sometimes I write that certain parameters should be preserved
-> so they will be present in the URL even if the implementation does not support
-> them. How useful is this in practice? Answer: it's not really useful in
-> practice but it is useful if we want to provide a standardized set of unit
-> tests that we can be reused between multiple implementations.
+TODO field / property / attribute be consistent
+
 
 ## Examples
 
 <dl>
 
-<dt><code>monetdb://localhost:50000/demo?user=monetdb&password=monetdb</code></dt>
-<dd>
-  First try to connect using Unix Domain socket <code>/tmp/.s.monetdb.50000</code>, if
-  supported. If that fails, try a TCP connection to localhost (either IPv6 or
-  IPv4) port 50000. Try to log in to database <code>demo</code> using the given user name
-  and password. Do not attempt to use TLS.
-</dd>
+  <dt><code>monetdb://localhost:50000/demo?user=monetdb&password=monetdb</code></dt>
+  <dd>
+    First try to connect using Unix Domain socket <code>/tmp/.s.monetdb.50000</code>, if
+    supported. If that fails, try a TCP connection to localhost (either IPv6 or
+    IPv4) port 50000. Try to log in to database <code>demo</code> using the given user name
+    and password. Do not attempt to use TLS.
+  </dd>
 
-<dt><code>monetdb:///demo</code></dt>
-<dd>
-  Equivalent of the above, except that user name and password are no longer specified.
-  Can be abbreviated further to <code>monetdb:demo</code>.
+  <dt><code>monetdb:///demo</code></dt>
+  <dd>
+    Equivalent of the above, except that user name and password are no longer specified.
+  </dd>
 
-  TODO BEFORE 0.2: is this abbreviation a good idea? If so, what are the exact rules?
-</dd>
+  <dt><code>monetdb://localhost.localdomain/demo</code></dt>
+  <dd>
+    Try to connect to database 'demo' on TCP port 50000 on localhost (either IPv4
+    or IPv6). Do not try the Unix Domain socket. Can be abbreviated to
+    <code>monetdb://localhost./demo</code>.
 
-<dt><code>monetdb://localhost.localdomain/demo</code></dt>
-<dd>
-  Try to connect to database 'demo' on TCP port 50000 on localhost (either IPv4
-  or IPv6). Do not try the Unix Domain socket. Can be abbreviated to
-  <code>monetdb://localhost./demo</code>.
+    TODO BEFORE 0.2: or can it?
+  </dd>
 
-  TODO BEFORE 0.2: or can it?
-</dd>
+  <dt><code>monetdb://mdb.example.com:12345/demo</code></dt>
+  <dd>
+    Try to connect to database 'demo' on TCP port 12345 on mdb.example.com.
+  </dd>
 
-<dt><code>monetdb://mdb.example.com:12345/demo</code></dt>
-<dd>
-  Try to connect to database 'demo' on TCP port 12345 on mdb.example.com.
-</dd>
+  <dt><code>monetdb://192.168.13.4:12345/demo</code></dt>
+  <dd>
+    Try to connect to database 'demo' on TCP
+    port 12345 on the given IPv4 address.
+  </dd>
 
-<dt><code>monetdb://192.168.13.4:12345/demo</code></dt>
-<dd>
-  Try to connect to database 'demo' on TCP
-  port 12345 on the given IPv4 address.
-</dd>
+  <dt><code>monetdb://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:12345/demo</code></dt>
+  <dd>
+    Try to connect to database 'demo' on TCP port 12345 on the given IPv6 address.
+  </dd>
 
-<dt><code>monetdb://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:12345/demo</code></dt>
-<dd>
-  Try to connect to database 'demo' on TCP port 12345 on the given IPv6 address.
-</dd>
+  <dt><code>monetdb://localhost/</code></dt>
+  <dd>
+    Try to connect to an unspecified database on <code>/tmp/.s.monetdb.50000</code>
+    or if that fails, TCP port 50000 on localhost. This will only work when
+    connecting to a raw mserver5.
+  </dd>
 
-<dt><code>monetdb://localhost/</code></dt>
-<dd>
-  Try to connect to an unspecified database on <code>/tmp/.s.monetdb.50000</code>
-  or if that fails, TCP port 50000 on localhost. This will only work when
-  connecting to a raw mserver5.
-</dd>
+  <dt><code>monetdbs://mdb.example.com/demo</code></dt>
+  <dd>
+    (Note the 's' in <code>monetdbs</code>.)
+    Similar to <code>monetdb://mdb.example.com/demo</code>, but secure the connection
+    using TLS. Use root certificates from the system trusted certificate store to
+    authenticate the server.
+  </dd>
 
-<dt><code>monetdbs://mdb.example.com/demo</code></dt>
-<dd>
-  (Note the 's' in <code>monetdbs</code>.)
-  Similar to <code>monetdb://mdb.example.com/demo</code>, but secure the connection
-  using TLS. Use root certificates from the system trusted certificate store to
-  authenticate the server.
-</dd>
+  <dt><code>monetdbs://mdb.example.com/demo?cert=/home/user/server.crt</code></dt>
+  <dd>
+    Connect to mdb.example.com. Secure the connection with TLS (used to be called SSL).
+    Authenticate the server against the TLS certificate found in file /home/user/server.crt.
+    Fail if the certificate is not present in the indicated location on the client host.
+  </dd>
 
-<dt><code>monetdbs://mdb.example.com/demo?cert=/home/user/server.crt</code></dt>
-<dd>
-  Connect to mdb.example.com. Secure the connection with TLS (used to be called SSL).
-  Authenticate the server against the TLS certificate found in file /home/user/server.crt.
-  Fail if the certificate is not present in the indicated location on the client host.
-</dd>
+  <dt><code>monetdb:///demo?sock=/tmp/.s.monet.50000&user=dbuser</code></dt>
+  <dd>
+    Connect using the given Unix Domain socket in the file system. Do not use TCP.
+    This syntax departs from the old URL syntax, where it would be
+    <code>mapi:monet:///tmp/.s.monetdb.50000?database=demo</code>.
+  </dd>
 
-<dt><code>monetdb:///demo?sock=/tmp/.s.monet.50000&user=dbuser</code></dt>
-<dd>
-  Connect using the given Unix Domain socket in the file system. Do not use TCP.
-  This syntax departs from the old URL syntax, where it would be
-  <code>mapi:monet:///tmp/.s.monetdb.50000?database=demo</code>.
-</dd>
+  <dt><code>monetdbe:///path/to/database/directory</code></dt>
+  <dd>
+    Run the embedded version of MonetDB inside the client and open the given path
+    with it. This is a dbpath, so the given directory would be expected to
+    contain subdirectories <code>bat/</code> and <code>sql_logs/</code>.
 
-<dt><code>monetdbe:///path/to/database/directory</code></dt>
-<dd>
-  Run the embedded version of MonetDB inside the client and open the given path
-  with it. This is a dbpath, so the given directory would be expected to
-  contain subdirectories <code>bat/</code> and <code>sql_logs/</code>.
-
-  Note: <code>monetdbe:</code> URLs are mentioned but not specified in this
-  version of this document.
-</dd>
+    Note: <code>monetdbe:</code> URLs are mentioned but not specified in this
+    version of this document.
+  </dd>
 
 </dl>
 
 
-## Overview
+## Syntax
 
-The semantics of MonetDB URLs are defined in terms of an intermediate stage, the
-*Connection Record*. A connection record contains all information necessary to
-establish a connection to MonetDB. It consists of a number of properties defined
-in section [Connection Record](#connection-record). Not all combinations of
-properties are valid, the validity rules are also listed there.
+The URL is parsed according to the rules in [RFC 3986][rfc3986]. The general form is:
 
-Before the connection can be established, a number of rules must be applied
-first. For example, if no port number has been supplied, port 50000 is assumed.
-As another example, if no explict Unix Domain socket has been supplied and the host name is still
-set to the default, the implementation will first attempt to connect to Unix
-Domain socket <code>/tmp/.s.monetdb.<b>portnumber</b></code> before attempting
-to make a TCP connection to localhost.
-In section [Connecting to MonetDB](#connecting-to-monetdb), these rules are
-expressed as derivations of so-called "effective properties" from other
-properties. For example, **effective_unix_sock** is derived from the values of
-**unix_sock**, **tcp_host** and **effective_port**.
+<pre>
+ monetdb://[<b>host</b>[:<b>port</b>]]/[<b>database</b>[/<b>table_schema</b>[/<b>table</b>]]][?param1=value1[&param2=value2...]]
+monetdbs://[<b>host</b>[:<b>port</b>]]/[<b>database</b>[/<b>table_schema</b>[/<b>table</b>]]][?param1=value1[&param2=value2...]]
+monetdbe:/to/be/determined
+</pre>
 
-One advantage of defining the semantics through the Connection Record is that it
-allows us to express how information from multiple sources can be combined. For
-example, the exact meaning of the command line parameters of `mclient` can also
-be expressed in terms of a connection record, and then we can state
-unambiguously for example what is supposed to happen when `mclient` receives
-both a `monetdb:` URL and a separate hostname on the command line.
+TODO BEFORE soon: storing information is an implementation, not a specification.
+"it will be convenient to assume all extracted information is stored in a
+*connection record* which has a field for each supported query parameter,
+plus some additional fields"
 
-Another advantage is that it allows us to provide unit tests with specification.
-The unit tests can test URL parsing, connection record manipulation and the
-computation of the effective properties. These are a lot of test cases that
-can then be shared among all implementations.
+The extracted information is stored in a *connection record* containing a large
+number of fields, all optional. The following fields are extracted from the
+"main part" of the URL and are not permitted as query parameters:
+
+| Field            | Type | Remark                                             |
+| ---------------- | ---- | -------------------------------------------------- |
+| **use_tls**      | bool | true if scheme is `monetdbs:`, false if `monetdb:` |
+| **host**         | str  | `localhost` has special meaning                    |
+| **port**         | int  |                                                    |
+| **database**     | str  |                                                    |
+| **table_schema** | str  | only used for REMOTE TABLE, otherwise ignored      |
+| **table**        | str  | only used for REMOTE TABLE, otherwise ignored      |
+
+The rest of the fields come from the query parameters:
+
+| Field           | Type     | Remark                                                   |
+| --------------- | -------- | -------------------------------------------------------- |
+| **sock**        | path     | path to Unix Domain socket to connect to                 |
+| **cert**        | path     | path to TLS certificate to authenticate server with      |
+| **clientkey**   | path     | path to TLS key (+certs) to authenticate with as client  |
+| **clientcert**  | path     | path to TLS certs for 'clientkey', if not included there |
+| **user**        | str      |                                                          |
+| **password**    | str      |                                                          |
+| **language**    | str      | only 'sql' is important                                  |
+| **autocommit**  | bool     |                                                          |
+| **schema**      | str      |                                                          |
+| **timezone**    | int      | as minutes east of UTC                                   |
+| **replysize**   | int      |                                                          |
+| **fetchsize**   | int      | alias for 'replysize', needed for JDBC                   |
+| **maxprefetch** | int      |                                                          |
+| **binary**      | bool/int | whether to use binary result set format                  |
+| **debug**       | bool     | meaning is implementation specific                       |
+| **logfile**     | str      | meaning is implementation specific                       |
+
+Booleans can be written as true/false, yes/no or on/off.
+
+Any query parameter not in this table MUST be rejected with an error, except if
+the name contains an underscore `_`. Query parameters with an underscore are
+implementation specific and MUST be ignored if not recognized. For example, the
+JDBC driver recognizes `so_timeout`, `treat_clob_as_varchar` and
+`treat_blob_as_binary`, which may be ignored by other implementations.
 
 
-## Connection Record
+### Parsing classic mapi:monetdb: URLs
 
-A connection record contains the following properties. Not all properties need
-to be present. Or, equivalently, some or all properties may contain a null
-value. A connection record where all properties are not present (are null) is
-called an *empty connection record*.
+TODO move this down!
 
-This section prescribes three *validity rules*, which define which combinations
-of properties are valid, and two *update rules*, which must be followed when
-altering a connection record.
+Every implementation also needs to be able to deal with the classic
+`mapi:monetdb:` URLs because they may occur in monetdbd's redirect messages
+while logging in. They can also occur in the output of `monetdb status`.
 
-These are the properties in a connection record:
+Note: pymonetdb supports an extended `mapi:monetdb:` syntax which includes user
+name, password, and a few more options:
 
-* The properties **tcp_host**, **port** and **unix_sock** indicate where to
-  connect to. If property **tcp_host** is present, it can be either a DNS name, an
-  IPv4 address or an IPv6 address. If it contains at least one colon `:`, it
-  must be considered an IPv6 address. If it consists of four decimal numbers
-  separated by periods `.`, it must be considered an IPv4 address. Otherwise, it
-  must be considered a host name to be resolved using the system resolver.
-  If property **port** is present, it must be a number in the range 1-65535. If
-  property **unix_sock** is present, it is the path to a Unix Domain socket to
-  connect to.
+    mapi:monetdb://user:password@host:port/database
 
-Note: the interpretation of the **tcp_host** field is different from the `host`
-component of the URL. See section [Connecting to MonetDB](#connecting-to-monetdb) for details.
+However, this extension is specific to pymonetdb and other implementations
+SHOULD NOT support it.
 
-> TODO BEFORE 0.1: make sure that the above is actually explained in the section referred to.
+This is how the classic URLs should be interpreted in terms of a connection
+record:
+
+* The URL starts with `mapi:monetdb://`. There is no `mapi:monetdbs:` variant and
+  there never will be. The prefix `mapi:merovingian:` is used internally in the
+  MAPI protocol but it is never visible to users and it is not governed by this
+  specification.
+
+* No percent decoding is performed anywhere, at all.
+
+* Host name and port are passed in the usual way after the double slashes.
+
+* If a host name is given, the path component of the URL is interpreted as the
+  database name.
+
+* If no host name is given, that is, if the URL starts with `mapi:monetdb:///`,
+  the path component is interpreted as a file system path to a Unix Domain socket
+  to connect to.
+
+* Only two query parameters are recognized: `language` and `database`.
+  The latter is only only allowed with Unix Domain sockets, that is,
+  triple-slash URLs.
+
+* All other parameters MUST be ignored.
+
+
+## Combining connection records
+
+When information from multiple sources is combined, for example command line
+parameters AND a URL, the following rules should be observed:
+
+In general, if we have an "old" and a "new" connection record, fields present in
+the new record override those in the old record. However,
+
+Rule **U1**: if **user** is changed, that is, if the **user** field is present
+in both the old and the new record and the values are not equal, the **password**
+field must be cleared unless it's present in the new record.
+
+Rule **U2**, which applies ONLY if the new record comes from a URL: if any of the
+fields **host**, **port**, **sock** or **database** are present in the new
+record, the ones that are not present must be cleared.
+
+
+## Validation rules
+
+Before trying to connect, the implementation must verify that the connection
+record satisfies the following constraints:
+
+> Rule **V1**: if **sock** and **host** are both present, **host** must be
+> equal to `localhost`.
+
+Unix Domain sockets do not make sense when connecting to any other host than
+the local host.
+
+> Rule **V2**: if present, **port** must be in the range 1-65535 (inclusive).
+
+In particular, it must not be 0 or negative.
+
+> Rule **V3**: if **clientcert** is present, **clientkey** must be present as
+> well.
+
+The other way around is allowed, as the certificates can be included in the
+key file.
+
+> Rule **V4**: if **password** is present, **user** must be present as well.
+
+It doesn't make any sense otherwise.
+
+> Rule **V5**: all fields of string type, if present, must not be the empty
+> string. Exceptions:
 >
-> TODO BEFORE 0.1: refer to [RFC 3986 section
-> 3.2.2](https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2).
-
-Validity rule **V1**: all three properties **tcp_host**, **port** and
-**unix_sock** may be omitted but if **unix_sock** is present, neither
-**tcp_host** nor **port** must be present.
-
-Update rule **U1**: all three properties **tcp_host**, **port** and
-**unix_sock** can be set or cleared individually, for example based on command
-line parameters. However, when (and only when) updating a connection record with
-information *from a URL*, they must be cleared if the URL does not set a value
-for them. For example, suppose **port** was originally set to 12345. After the
-URL `monetdb://dbhost/demo` has been parsed, **port** will no longer be present
-in the connection record.
-
-* Property **use_tls** is a boolean that indicates whether to encrypt the
-  connection and authenticate the server using TLS.  Property **tls_cert** is
-  the path on the client to a certificate to be used to authenticate the server.
-  If not present, the root certificates built into the client OS or Runtime
-  should be used. Property **client_key** is the path to a private key to be
-  used to authenticate the client to the server. Property **client_cert** is the
-  path to a certificate chain for that key. However, note that in section
-  [Connecting to MonetDB](#connecting-to-monetdb), **effective_client_cert**
-  defaults to **client_key** if present, to allow for situations where the
-  certificates are bundled with the key.
-
-> TODO BEFORE 0.2: should there be a validity rule that says that **tls_cert**,
-> **client_key** and **client_cert** can only be present if **use_tls** is set
-> to True?
-
-* Property **dbpath** is reserved for use with `monetdbe:` URLs.
-
-Validity rule **V2**: if **dbpath** is present, none of **tcp_host**, **port**,
-**unix_sock** and **use_tls** can be present.
-
-* Property **database** indicates the name of the database to connect to. It is
-  only needed when connecting to `monetdbd`, not when connecting directly to
-  `mserver5`. The properties **table_schema** and **table** can be used in
-  `REMOTE TABLE` definitions but are not used while connecting.
-
-* The properties **user** and **password** are used when authenticating to MonetDB.
-
-Validity rule **V3**: if **password** is present, **user** must also be present.
-
-Update rule **U2**: if the **user** property is updated, either through an URL
-or through other means, **password** MUST be cleared unless a new password
-is provided simultaneously.
-
-Security note: including the password in the URL is convenient but insecure.
-Implementions should also provide another mechanism to enter the password and
-possibly the user name into the connection record.
-
-* The property **language** is used when logging into MonetDB. Currently known
-  values are `sql`, `mal`, `msql` and `profiler`. Implementations are not required
-  to support all of them.
-
-> TODO BEFORE 0.2: use the phrase "valid but may cause an error at connect time"
-> more often.
-
-* The properties **autocommit**, **default_schema**, **timezone**,
-  **reply_size** and **binary** are used to override default settings after
-  connection has been established. Property **autocommit** is a boolean,
-  **default_schema** is a string. Property **timezone** is a signed integer
-  indicating the number of minutes EAST of UTC. Property **reply_size** is the
-  default number of rows of a result set to include in the initial response to a
-  query. The other rows will be postponed until the client asks for them. Values
-  0 and -1 mean "no limit".
-
-  Property **binary** is a nonnegative number or a boolean. Numbers indicate
-  various levels of support for the binary result set format. At the time of
-  writing, levels 0 and 1 are in use. The boolean values are aliases of numbers:
-  False corresponds to 0 and True corresponds to the highest value supported by
-  the implementation. This should be resolved at connect time, not in the
-  connection record. In other words, with the URL `monetdb:///demo?binary=yes`,
-  the property should be set to True and not to a number.
-
-  Property **maxprefetch** indicates an upper bound on the number of rows the
-  implementation fetches ahead of time. This is done by for example pymonetdb
-  and monetdb-java. Implementations that do not fetch ahead can ignore it.
-
-* Implementations may extend the connection record with additional properties
-  that only they recognize. Except for a limited number of backward
-  compatibility exceptions, the names of such properties and the corresponding
-  URL parameters should start with letter 'x'.  Implementations must store all
-  such properties even if they do not understand them, and pass them on if the
-  connection record is converted into a new URL.
+> 1. **password** is allowed to be the empty string.
 
 
-## Connecting to MonetDB
+## Effective attributes
 
-Before connecting, the final value of a number of settings needs to be determined.
+Before the connection can be established, a number of decisions needs to be
+made. For example, we need to set default values, and we need to decide whether
+an attempt should be made to connect to a Unix Domain socket before trying a
+TCP connection.
+
+These decisions are expressed as a number of *effective attributes* that are
+derived from other fields. For example, **effective_unix_sock** is derived from
+fields **sock**, **host** and **effective_port**.
 
 <dl>
 
-<dt>effective_tcp_host</dt>
-<dd>
-  <b>tcp_host</b> if present;
-  <code>localhost</code> if <b>unix_sock</b> is not present;
-  not present otherwise.
-</dd>
+  <dt>effective_use_tls</dt>
+  <dd>
+    the value of <b>use_tls</b> if present;
+    false otherwise.
+  </dd>
 
-<dt>effective_port</dt>
-<dd>
-  <b>port</b> if present;
-  50_000 otherwise.
-</dd>
+  <dt>effective_tcp_host</dt>
+  <dd>
+    the value of <b>host</b> if present;
+    not present if <b>sock</b> is present;
+    `localhost` if neither <b>host</b> nor <b>sock</b> are present.
+  </dd>
 
-<dt>effective_unix_sock</dt>
-<dd>
-  <b>unix_sock</b>, if present;
-  <code>/tmp/.s.monetdb.<b>&lt;effective_port&gt;</b></code> if <b>effective_tcp_host</b> is 'localhost';
-  not present otherwise.
-</dd>
+  <dt>effective_port</dt>
+  <dd>
+    the value of <b>port</b>, if present;
+    50_000 otherwise.
+  </dd>
 
-<dt>effective_use_tls</dt>
-<dd>
-  **use_tls**, if present;
-  False, otherwise.
-</dd>
+  <dt>effective_unix_sock</dt>
+  <dd>
+    the value of <b>sock</b> if present;
+    <code>/tmp/.s.monetdb.<b>effective_port</b></code> if <b>host</b> is <code>localhost</code> or not present;
+    not present otherwise.
+  </dd>
 
-<dt>effective_database</dt>
-<dd>
-  <b>database</b>, if present;
-  the empty string, otherwise.
-</dd>
+  <dt>effective_language</dt>
+  <dd>
+    the value of <b>language</b> if present;
+    <code>sql</code> otherwise.
+  </dd>
 
-<dt>effective_language</dt>
-<dd>
-  <b>language</b> if present;
-  <code>sql</code> otherwise.
-  If language <b>effective_language</b> is not supported, abort.
-</dd>
+  <dt>effective_replysize</dt>
+  <dd>
+    the value of <b>replysize</b>, if present;
+    the value of <b>fetchsize</b>, if present;
+    not present otherwise.
+  </dd>
 
-<dt>effective_binary</dt>
-<dd>
-  the minimum of <b>binary</b> and the maximum supported level, if <b>binary</b> is a number;
-  0, if <b>binary</b> is False;
-  the maximum supported level, if <b>binary</b> is True.
-</dd>
+  <dt>effective_binary</dt>
+  <dd>
+    the minimum of <b>binary</b> and the maximum supported level, if <b>binary</b> is a number;
+    0, if <b>binary</b> is False;
+    the maximum supported level, if <b>binary</b> is True.
+  </dd>
 
 </dl>
 
-With these values determined, the connection is set up as follows:
 
-1. This version of the specification does not cover the situation where
-   **dbpath** is present. In the remainder of this section, assume it is not
-   present.
+## Establishing the connection
 
-2. If Unix Domain sockets are supported, try to connect to
-   **effective_unix_sock**. If this succeeds, move on to step 5. If it fails,
+1. If Unix Domain sockets are supported, try to connect to
+   **effective_unix_sock**. If this succeeds, move on to step 4. If it fails,
    remember the error and move to the next step. If Unix Domain sockets are not
    supported, remember an error that says so.
 
-3. If **effective_tcp_host** is present, connect to **effective_tcp_host** at
-   port **effective_port**. If this succeeds move on to step 5. If it fails,
+2. If **effective_tcp_host** is present, connect to **effective_tcp_host** at
+   port **effective_port**. If this succeeds move on to step 4. If it fails,
    remember the error.
 
-4. If you get here, abort the connection attempt with the remembered error.
+3. If you get here, abort the connection attempt with the remembered error.
 
-5. If **effective_use_tls** is True, wrap the connection in TLS using
+4. The connection has been established.
+   If **effective_use_tls** is True, wrap it in TLS using
    **tls_cert**, **client_key** and **client_cert**. Abort if this fails.
 
-6. Perform a MAPI login using **effective_database**, **effective_language**,
-   **user** and **password**. Configure the session using **autocommit**,
+5. Perform a MAPI login using **user**, **password**, **database** and
+   **effective_language**. Configure the session using **autocommit**,
    **default_schema**, **timezone** and **reply_size**, using sensible default
    values if not present.
 
-7. During the course of the session, use the binary result set protocol when
+6. During the course of the session, use the binary result set protocol when
    appropriate, depending on **effective_binary** and the capabilities of the
    implementation and the server.
 
 
-## Parsing the URL
+## Implementation in JDBC
 
-> TODO BEFORE 0.2: Pick section names without a verb, this is a spec not a recipe
+A JDBC URL always starts with `jdbc:`. For MonetDB, that prefix is followed by a
+MonetDB URL as specified in this document. The URL format specified in this
+document is intended to be backward compatible with the existing JDBC driver in
+the sense that all existing `jdbc:monetdb:` URLs ought to have the same meaning
+when interpreted under the new rules. However, the new scheme offers more
+options and, of course, TLS support.
 
-The general form of a MonetDB URL is:
+Note: the JDBC API allows to pass a `Properties` object together with the URL.
+All query parameters can also be passed as property with the same name. The
+information in the URL and the information in the properties object is combined
+according to the rules in
+Section&nbsp;[Combining connectionrecords](#combining-connection-records),
+with the properties as the 'old' record and the URL as the 'new' record.
 
-<pre>
- monetdb://[<b>host</b>][:<b>port</b>]/[<b>database</b>[/<b>table_schema</b>[/<b>table</b>]]][?param1=value1&[param2=value2...]]
-monetdbs://[<b>host</b>][:<b>port</b>]/[<b>database</b>[/<b>table_schema</b>[/<b>table</b>]]][?param1=value1&[param2=value2...]]
-monetdbe:/to/be/determined
-</pre>
+As described in Section&nbsp;[Syntax](#syntax), the fields **use_tls**,
+**host**, **port** and **database** cannot be passed as query parameters and
+therefore also not in the Properties object. However, as an exception, the JDBC
+driver will not apply this rule if the full URL is exactly equal to
+`jdbc:monetdb:`, that is, without slashes or anything else. In that case, all
+fields can be set through the properties object.
 
-The URL is parsed into components according to the rules in [RFC 3986][rfc3986].
-We will use a monospaced font for URL components, e.g., `host, and continue to
-use bold face for connection record properties, e.g., **tcp_host**.
-
-> TODO BEFORE 0.2: explicitly list the characters that may appear in a URL without
-> percent-encoding, or refer to the relevant phrase in the [RFC][rfc3986].
-> Note: we should allow the unescaped colons `:` in query parameters to facilitate
-> things like `monetdbs://dbhost/demo?cert=C:\Certs\mycert.crt`. Pity we can't allow
-> spaces.
->
-> TODO BEFORE 0.2: are all components percent-decoded? For example, is
-> `m%6Fnetdb:///demo` a valid URL?
-
-If the scheme is `monetdb:`, **use_tls** is set to False. If it is `monetdbs:`,
-**use_tls** is set to True.
-
-Property **tcp_host** is set to component `host` if present, cleared otherwise.
-There are two exceptions: if the `host` component is equal to `localhost`, the
-**tcp_host** property is cleared. If the `host` component is equal to `localhost.`
-(with a trailing period), **tcp_host* is set to `localhost`.
-
-The reason for the above rule is that [RFC 3986][rfc3986] does not permit
-the host to be omitted if a port is given. Therefore we map `localhost` to
-"**tcp_host** not present" which means "try Unix Domain socket first", and
-allow `localhost.` for the rare situation where we actually want to skip the
-Unix Domain socket and only try TCP.
-
-Property **port** is set to the value of component `port` if present and
-in range, cleared otherwise. Out of range `port` values are an error.
-
-Property **unix_sock** is cleared unless query parameter `sock` is present.
-
-Together, the three rules above implement update rule **U1**.
-
-Property **database** is set to the value of component `database`, if present.
-
-> TODO BEFORE 0.1: modify update rule **U1** to also clear **database**. Add a
-> rule to clear **table_schema** and **table** if **database** is set. (But only
-> if from a URL?)
+This is convenient because the bare `jdbc:monetdb:` URL can be used with the
+return value of the non-standard `getConnectionProperties()` method of the
+`MonetConnection` class. This method which returns a properties object with all
+information necessary to establish a new, identical connection, including
+properties for host, port, etc.
 
 
-### Query Parameters
+## Implementation in pymonetdb
 
-The query parameters are mapped to properties according to the following table.
-Note that the parameter names in the URL are not always identical to the
-corresponding connection record property.
+Pymonetdb currently only uses `mapi:monetdb:` URLs so support for
+`monetdb:` and `monetdbs:` URLs can be added while remaining backward compatible.
 
-if query parameter `user` is present and `password` is not, the **password**
-property of the connection record must be cleared. This implements update rule
-**U2**.
+In the `mapi:monetdb:` URLs, pymonetdb also allows user- and password fields in
+the main URL, as in:
 
-If a property occurs more than once in the query parameters, all but the last
-instance are ignored.
+    mapi:monetdb://user:password@host:port/database
 
-Note that some properties correspond to by more than one query parameter. For
-example, both `replysize` and `fetchsize` map to property **reply_size**. With
-the URL `monetdb:///demo?fetchsize=100&replysize=200&fetchsize=300`,
-**reply_size** ends up with value 300.
-
-| Query Param   | Property           | Remark                                                      |
-| ------------- | ------------------ | ----------------------------------------------------------- |
-| `autocommit`  | **autocommit**     | false,no,true,yes (case insensitive)                        |
-| `binary`      | **binary**         | NUMBER,false,no,true,yes (case insensitive)                 |
-| `cert`        | **tls_cert**       | path on client                                              |
-| `clientcert`  | **client_cert**    | path on client                                              |
-| `clientkey`   | **client_key**     | path on client                                              |
-| `fetchsize`   | **reply_size**     | alias for `replysize`, for the benefit of JDBC              |
-| `language`    | **language**       |                                                             |
-| `maxprefetch` | **maxprefetch**    |                                                             |
-| `password`    | **password**       |                                                             |
-| `replysize`   | **reply_size**     |                                                             |
-| `schema`      | **default_schema** |                                                             |
-| `sock`        | **unix_sock**      | path on client                                              |
-| `timezone`    | **timezone**       |                                                             |
-| `user`        | **user**           | must clear **password** unless also given                   |
-| `username`    | **user**           | alias for `user`; must clear **password** unless also given |
-| `xWHATEVER`   | **xWHATEVER**      | implementation-specific                                     |
-| `debug`       | **xdebug**         | backward-compatibility alias for `xdebug`                   |
-| `logfile`     | **xlogfile**       | backward-compatibility alias for `xlogfile`                 |
-
-> TODO BEFORE 0.2: should `maxprefetch` actually just be `prefetch`? Or should we
-> just make it pymonetdb-specific xmaxprefetch or xprefetch? Note that JDBC also
-> performs prefetch but the amount is currently not configurable.
->
-> TODO BEFORE 0.2: various drivers have timeout parameters. Interpretation varies,
-> sometimes only on connect, sometimes also on all socket reads and writes. Should
-> we introduce distinct timeout properties for these cases? Or should we just
-> specify that, for example, parameter `so_timeout` is defined to be an alias for
-> `xso_timeout` and leave the possibly inconsistent interpretations to the
-> individual implementation?
+This capability will be retained but not ported to any other implementations.
 
 
-## Implications for JDBC URLs
+## Implementation in libmapi / mclient / ODBC
 
-> TODO BEFORE 0.2: move this to a companion document
+TODO need to flesh this out more.
 
-The format of the MonetDB JDBC URL as of version 3.3 is given in the release
-notes as:
+We will ensure all command-line tools allow passing a URL instead of the
+database name. This is currently the case for mclient and probably for msqldump,
+but there may be others.  The interaction between the URL parameter and the
+other parameters should be governed by the rules in
+Section&nbsp;[Combining connection records](#combining-connection-records).
+This is not expected to be a problem because those rules are modelled on how
+mclient does it, and if the other tools differ from mclient they should probably
+be changed anyway.
 
-> `jdbc:monetdb://<hostname>[:<portnr>]/<databasename>[?<property>=<value>[&<property>=<value>]]`
+Mtest uses separate environment variables `HOST`, `MAPIPORT`, etc., to pass
+connection information to sqllogictest.py and other test scripts. Some of the
+test scripts call still other programs such as mclient. It would be good if we
+could run at least a substantial portion of the test suite against TLS-protected
+servers. Tests that start their own mservers can obviously not be included but
+most of the bread-and-butter tests can. To achieve this, Mtest should provide
+a MAPIURL variable and most of the other tooling should pass that around as-is.
+Details to be investigated.
 
-Apart from the query parameters, which we'll discuss below, this is compatible
-with the syntax proposed in this document.
+MonetDBD should be extended with a base-url to be used for the `monetdb status`
+output and in MAPI redirects. Example...
 
-Percent encoding is not mentioned in the release notes but the implementation
-percent-decodes the query parameter string. Unfortunately, it decodes it before
-splitting on `&` but that is probably a bug. Instead, the implementation should
-first split on `&` and then percent-decode the individual property names and values.
+Libmapi, function `mapi_mapiuri` must accept the new URL styles.
+There is also `mapi_get_uri`, what should it return?
+classic url? new style url? should it include username and password? only
+user name?  all have valid use cases.  introduce new function with more settings,
+make mapi_get_uri a classic-only wrapper.  but what should the wrapper return
+if cannot be represented as classic (e.g., monetdbs?).
+probably also long range of get_/set_field functions.
 
-MonetDB JDBC does support Unix Domain sockets.
+ODBC listens to MAPIPORT, sounds like a bad idea to me.
 
-JDBC API allows to pass properties as well as a URL. We need everything in the URL
-to have equivalent property. Add 'host', 'port', and 'database' properties.
-Why do we mention this?
-
-
-In the JDBC API there are three ways to create a connection: 1) from a URL,
-2) from a URL plus a Properties object, and 3) from a URL, a user name and a
-password. JDBC itself maps the latter case to a Properties object with a `user` and
-a `password` property. In our MonetDriver we parse the URL and insert
-`host`, `port` and database properties into the Properties object, plus
-a property for every query parameter. The resulting Properties object is then
-passed to MonetConnection.
-
-The JDBC API allows you to pass a URL and a
-[Properties](https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html)
-object. Instead of properties you can also pass user name and password, these
-get translated to a Properties object with `user` and `password` properties. Our
-`MonetDriver` parses the URL and overrides properties `host`, `port`,
-`database`, plus a property for every query parameter. The resulting Properties
-object is then passed to the `MonetConnection` constructor, which is
-package-private. It can be extracted using XXX
-
-The currently recognized query parameters are:
-
-```
-  #host
-  #port
-  #database
-  user=<login name>
-  password=<secret value>
-  so_timeout=<time in milliseconds>  default is: 0 (no timeout)
-  treat_clob_as_varchar=false        default is: true
-  treat_blob_as_binary=false         default is: true
-  language=<sql or mal>              default is: sql
-  fetchsize=<nr of rows>             default is: 250; -1 means fetch everything at once
-  autocommit=false                   default is: true
-  debug=true                         default is: false
-  logfile=<name of logfile>
-  hash=<SHA512, SHA384, SHA256 or SHA1>
-```
-
-Proposal: The Properties passed to MonetConnection by MonetDriver will
-use the Connection Record naming. Properties passed to MonetDriver will
-be added to connection record
-
-Or have explicit ConnectionRecord class?  Inner class of Driver?
-
-
-TODO BEFORE 0.2: implementation defined query parameters with underscore instead
-of x.
-
-TODO BEFORE 0.2: when do we error negative reply sizes etc?
-
-If we assume that we will first map the properties
-
-TODO BEFORE 0.2: should user and password be given to be valid?
-
-TODO BEFORE 0.2: note that many warnings are now errors. for example: invalid port.
-how can that be a warning?
-
-TODO BEFORE 0.2: drop passwd if user changed instead of set?
-to allow setting user in url and passwd in propertuy
-
-TODO BEFORE 0.2: valid means port is in range
-
-TODO BEFORE 0.2: what is effective binary if binary is null,
-
-TODO BEFORE 0.2: sqlnontransientconnectionexception
-
-TODO BEFORE 0.2: sql, mal,  add msql?
-
-## Classic MAPI URLs
-
-> TODO BEFORE 0.2: move this to a companion document
-
-
-## Implications for pymonetdb
-
-> TODO BEFORE 0.2: move this to a companion document
-
-
-## Implication for libmapi
-
-> TODO BEFORE 0.2: move this to a companion document
-
-
-## List of all connection record properties
-
-* autocommit
-* binary
-* client_cert
-* client_key
-* database
-* dbpath
-* default_schema
-* language
-* maxprefetch
-* password
-* port
-* reply_size
-* replysize
-* table
-* table_schema
-* tcp_host
-* timezone
-* tls_cert
-* unix_sock
-* use_tls
-* user
-* xdebug
-* xlogfile
