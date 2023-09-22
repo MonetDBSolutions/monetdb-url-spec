@@ -405,19 +405,7 @@ redirect, multiple iterations may be necessary.
    level advertised by the server and remember the minimum for later use.
 
 
-
-
-<hr>
-<hr>
-
-
-## OLD CRUFT
-
-
-
-### Parsing classic mapi:monetdb: URLs
-
-TODO move this down!
+## Parsing classic mapi:monetdb: URLs
 
 Every implementation also needs to be able to deal with the classic
 `mapi:monetdb:` URLs because they may occur in monetdbd's redirect messages
@@ -431,8 +419,7 @@ name, password, and a few more options:
 However, this extension is specific to pymonetdb and other implementations
 SHOULD NOT support it.
 
-This is how the classic URLs should be interpreted in terms of a connection
-record:
+This is how the classic URLs should be interpreted:
 
 * The URL starts with `mapi:monetdb://`. There is no `mapi:monetdbs:` variant and
   there never will be. The prefix `mapi:merovingian:` is used internally in the
@@ -455,86 +442,6 @@ record:
 
 * Only two query parameters are recognized: `language` and `database`.
   The latter is only only allowed with Unix Domain sockets, that is,
-triple-slash URLs.
+  triple-slash URLs.
 
 * All other parameters MUST be ignored.
-
-
-### Implementation in JDBC
-
-A JDBC URL always starts with `jdbc:`. For MonetDB, that prefix is followed by a
-MonetDB URL as specified in this document. The URL format specified in this
-document is intended to be backward compatible with the existing JDBC driver in
-the sense that all existing `jdbc:monetdb:` URLs ought to have the same meaning
-when interpreted under the new rules. However, the new scheme offers more
-options and, of course, TLS support.
-
-Note: the JDBC API allows to pass a `Properties` object together with the URL.
-All query parameters can also be passed as property with the same name. The
-information in the URL and the information in the properties object is combined
-according to the rules in
-Section&nbsp;[Combining connectionrecords](#combining-connection-records),
-with the properties as the 'old' record and the URL as the 'new' record.
-
-As described in Section&nbsp;[Syntax](#syntax), the fields **tls**,
-**host**, **port** and **database** cannot be passed as query parameters and
-therefore also not in the Properties object. However, as an exception, the JDBC
-driver will not apply this rule if the full URL is exactly equal to
-`jdbc:monetdb:`, that is, without slashes or anything else. In that case, all
-fields can be set through the properties object.
-
-This is convenient because the bare `jdbc:monetdb:` URL can be used with the
-return value of the non-standard `getConnectionProperties()` method of the
-`MonetConnection` class. This method which returns a properties object with all
-information necessary to establish a new, identical connection, including
-properties for host, port, etc.
-
-
-### Implementation in pymonetdb
-
-Pymonetdb currently only uses `mapi:monetdb:` URLs so support for
-`monetdb:` and `monetdbs:` URLs can be added while remaining backward compatible.
-
-In the `mapi:monetdb:` URLs, pymonetdb also allows user- and password fields in
-the main URL, as in:
-
-    mapi:monetdb://user:password@host:port/database
-
-This capability will be retained but not ported to any other implementations.
-
-
-### Implementation in libmapi / mclient / ODBC
-
-TODO need to flesh this out more.
-
-We will ensure all command-line tools allow passing a URL instead of the
-database name. This is currently the case for mclient and probably for msqldump,
-but there may be others.  The interaction between the URL parameter and the
-other parameters should be governed by the rules in
-Section&nbsp;[Combining connection records](#combining-connection-records).
-This is not expected to be a problem because those rules are modelled on how
-mclient does it, and if the other tools differ from mclient they should probably
-be changed anyway.
-
-Mtest uses separate environment variables `HOST`, `MAPIPORT`, etc., to pass
-connection information to sqllogictest.py and other test scripts. Some of the
-test scripts call still other programs such as mclient. It would be good if we
-could run at least a substantial portion of the test suite against TLS-protected
-servers. Tests that start their own mservers can obviously not be included but
-most of the bread-and-butter tests can. To achieve this, Mtest should provide
-a MAPIURL variable and most of the other tooling should pass that around as-is.
-Details to be investigated.
-
-MonetDBD should be extended with a base-url to be used for the `monetdb status`
-output and in MAPI redirects. Example...
-
-Libmapi, function `mapi_mapiuri` must accept the new URL styles.
-There is also `mapi_get_uri`, what should it return?
-classic url? new style url? should it include username and password? only
-user name?  all have valid use cases.  introduce new function with more settings,
-make mapi_get_uri a classic-only wrapper.  but what should the wrapper return
-if cannot be represented as classic (e.g., monetdbs?).
-probably also long range of get_/set_field functions.
-
-ODBC listens to MAPIPORT, sounds like a bad idea to me.
-

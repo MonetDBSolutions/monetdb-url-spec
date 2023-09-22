@@ -781,3 +781,11 @@ EXPECT host=
 EXPECT sock=/path/to/socket
 EXPECT database=demo
 ```
+
+Corner case?:
+
+```test
+PARSE mapi:monetdb:///
+EXPECT host=
+EXPECT sock=/
+```
