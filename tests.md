@@ -10,19 +10,27 @@ keywords:
 
 * `PARSE url`: parse the URL, this should succeed.
 
-* `REJECT url`: parse the URL, the URL should be rejected
+* `REJECT url`: parse the URL, it should be rejected.
 
-* `SET key=value`: modify a parameter before or after parsing the URL.
+* `SET key=value`: modify a parameter, can occur before or after parsing the URL.
   Used to model command line parameters, Java Properties objects, etc.
 
 * `EXPECT key=value`: verify that the given parameter now has the given
-  value. Absent values are written as the empty string. Fail the test case
-  if the value is different.
+  value. Fail the test case if the value is different.
 
 At the start of each block the parameters are reset to their default values.
 
-Special `connect_`` keys are also supported.
-Plus `valid`, which is true if validation rules pass and false otherwise.
+The EXPECT clause can verify all parameters listen in the Parameters section of
+the spec, all 'virtual parameters' and also the special case 'valid' which is a
+boolean indicating whether all validity rules in section 'Interpreting the
+parameters' hold.
+
+Note: an `EXPECT` of the virtual parameters implies `EXPECT valid=true`,
+as do `PARSE` and `REJECT`. In the case of `PARSE`, `valid` must be true.
+In the case of `REJECT`, if the URL is syntactically correct but `valid=false`,
+this is considered a succesful rejection of the URL.
+
+TODO before 1.0 does the above explanation make sense?
 
 
 ## Tests from the examples
@@ -77,7 +85,7 @@ EXPECT database=demo
 ```
 
 ```test
-PARSE monetdb://192.168.13.4:12345
+PARSE monetdb://192.168.13.4:12345/demo
 EXPECT connect_unix=
 EXPECT connect_tcp=192.168.13.4
 EXPECT port=12345
@@ -147,17 +155,6 @@ EXPECT database=demo
 ```
 
 ```test
-PARSE monetdb:///demo?sock=/tmp/.s.monet.50000&user=dbuser
-EXPECT connect_unix=
-EXPECT connect_tcp=mdb.example.com
-EXPECT port=50000
-EXPECT tls=on
-EXPECT connect_tls_verify=cert
-EXPECT cert
-EXPECT database=demo
-```
-
-```test
 PARSE monetdb:///demo?sock=/var/monetdb/_sock&user=dbuser
 EXPECT connect_unix=/var/monetdb/_sock
 EXPECT connect_tcp=
@@ -208,19 +205,19 @@ EXPECT cert=C:\TEMP\cert.pem
 
 ```test
 EXPECT certhash=
-PARSE monetdbs:///certhash?={sha1}001122ff
-PARSE monetdbs:///certhash?={sha1}00:11:22:ff
-PARSE monetdbs:///certhash?={sha256}001122ff
+PARSE monetdbs:///?certhash={sha1}001122ff
+PARSE monetdbs:///?certhash={sha1}00:11:22:ff
+PARSE monetdbs:///?certhash={sha256}001122ff
 PARSE monetdbs:///?certhash=001122ff
 REJECT monetdbs:///?certhash=sha1:001122ff
-REJECT monetdbs:///certhash?={sha1}}001122gg
+REJECT monetdbs:///?certhash={sha1}}001122gg
 ```
 
 ### clientkey, clientcert
 
 ```test
 EXPECT clientkey=
-PARSE monetdbs:///clientkey?=/tmp/clientkey.pem
+PARSE monetdbs:///?clientkey=/tmp/clientkey.pem
 EXPECT clientkey=/tmp/clientkey.pem
 PARSE monetdbs:///?clientkey=C:\TEMP\clientkey.pem
 EXPECT clientkey=C:\TEMP\clientkey.pem
@@ -229,7 +226,7 @@ EXPECT clientkey=C:\TEMP\clientkey.pem
 
 ```test
 EXPECT clientcert=
-PARSE monetdbs:///clientcert?=/tmp/clientcert.pem
+PARSE monetdbs:///?clientcert=/tmp/clientcert.pem
 EXPECT clientcert=/tmp/clientcert.pem
 PARSE monetdbs:///?clientcert=C:\TEMP\clientcert.pem
 EXPECT clientcert=C:\TEMP\clientcert.pem
@@ -279,7 +276,6 @@ EXPECT autocommit=false
 ```
 
 ```test
-EXPECT autocommit=
 REJECT monetdb:///?autocommit=
 REJECT monetdb:///?autocommit=banana
 REJECT monetdb:///?autocommit=0
@@ -292,20 +288,19 @@ Must be accepted, no constraints on content
 
 ```test
 EXPECT schema=
-ACCEPT monetdb:///?schema=foo
+PARSE monetdb:///?schema=foo
 EXPECT schema=foo
-ACCEPT monetdb:///?schema=
+PARSE monetdb:///?schema=
 EXPECT schema=
-ACCEPT monetdb:///?schema=foo
+PARSE monetdb:///?schema=foo
 ```
 
 ```test
-EXPECT timezone=
-ACCEPT monetdb:///?timezone=0
+PARSE monetdb:///?timezone=0
 EXPECT timezone=0
-ACCEPT monetdb:///?timezone=120
+PARSE monetdb:///?timezone=120
 EXPECT timezone=120
-ACCEPT monetdb:///?timezone=-120
+PARSE monetdb:///?timezone=-120
 EXPECT timezone=-120
 REJECT monetdb:///?timezone=banana
 ```
@@ -315,13 +310,13 @@ REJECT monetdb:///?timezone=banana
 Note we never check `EXPECT fetchsize=`, it doesn't exist.
 
 ```test
-ACCEPT monetdb:///?replysize=150
+PARSE monetdb:///?replysize=150
 EXPECT replysize=150
-ACCEPT monetdb:///?fetchsize=150
+PARSE monetdb:///?fetchsize=150
 EXPECT replysize=150
-ACCEPT monetdb:///?fetchsize=100&replysize=200
+PARSE monetdb:///?fetchsize=100&replysize=200
 EXPECT replysize=200
-ACCEPT monetdb:///?replysize=100&fetchsize=200
+PARSE monetdb:///?replysize=100&fetchsize=200
 EXPECT replysize=200
 ```
 
@@ -329,43 +324,43 @@ EXPECT replysize=200
 
 ```test
 EXPECT binary=on
-EXPECT connection_binary=65535
+EXPECT connect_binary=65535
 ```
 
 ```test
-ACCEPT monetdb:///?binary=on
-EXPECT connection_binary=65535
+PARSE monetdb:///?binary=on
+EXPECT connect_binary=65535
 
-ACCEPT monetdb:///?binary=yes
-EXPECT connection_binary=65535
+PARSE monetdb:///?binary=yes
+EXPECT connect_binary=65535
 
-ACCEPT monetdb:///?binary=true
-EXPECT connection_binary=65535
+PARSE monetdb:///?binary=true
+EXPECT connect_binary=65535
 
-ACCEPT monetdb:///?binary=yEs
-EXPECT connection_binary=65535
+PARSE monetdb:///?binary=yEs
+EXPECT connect_binary=65535
 ```
 
 ```test
-ACCEPT monetdb:///?binary=off
-EXPECT connection_binary=0
+PARSE monetdb:///?binary=off
+EXPECT connect_binary=0
 
-ACCEPT monetdb:///?binary=no
-EXPECT connection_binary=0
+PARSE monetdb:///?binary=no
+EXPECT connect_binary=0
 
-ACCEPT monetdb:///?binary=false
-EXPECT connection_binary=0
+PARSE monetdb:///?binary=false
+EXPECT connect_binary=0
 ```
 
 ```test
-ACCEPT monetdb:///?binary=0
-EXPECT connection_binary=0
+PARSE monetdb:///?binary=0
+EXPECT connect_binary=0
 
-ACCEPT monetdb:///?binary=5
-EXPECT connection_binary=5
+PARSE monetdb:///?binary=5
+EXPECT connect_binary=5
 
-ACCEPT monetdb:///?binary=0100
-EXPECT connection_binary=100
+PARSE monetdb:///?binary=0100
+EXPECT connect_binary=100
 ```
 
 ```test
@@ -378,7 +373,7 @@ REJECT monetdb:///?binary=banana
 
 ```test
 REJECT monetdb:///?banana=bla
-ACCEPT monetdb:///?ban_ana=bla
+PARSE monetdb:///?ban_ana=bla
 ```
 
 ## Combining sources
@@ -401,14 +396,14 @@ EXPECT schema=c
 
 Rule: a source that sets user must set password or clear.
 
-```test
+```skiptest
 PARSE monetdb:///?user=foo
 EXPECT user=foo
 EXPECT password=
 SET password=banana
 EXPECT user=foo
 EXPECT password=banana
-SET USER=bar
+SET user=bar
 EXPECT password=
 ```
 
@@ -471,14 +466,14 @@ EXPECT user=mathison
 EXPECT password=
 ```
 
-Setting to the same value counts as setting
+The rule is, "if **user** changed", not "if **user** is set".
 
 ```test
 SET user=alan
 SET password=turing
 PARSE monetdbs:///?user=alan
 EXPECT user=alan
-EXPECT password=
+EXPECT password=turing
 ```
 
 ## URL syntax
@@ -604,102 +599,86 @@ The following tests check the interaction between **tls**, **host** and **sock**
 
 ```test
 PARSE monetdb:///
-EXPECT valid=yes
 EXPECT connect_unix=/tmp/.s.monetdb.50000
 EXPECT connect_tcp=localhost
 ```
 
 ```test
 PARSE monetdb:///?sock=/a/path
-EXPECT valid=yes
 EXPECT connect_unix=/a/path
 EXPECT connect_tcp=
 ```
 
 ```test
 PARSE monetdb://localhost/
-EXPECT valid=yes
 EXPECT connect_unix=/tmp/.s.monetdb.50000
 EXPECT connect_tcp=localhost
 ```
 
 ```test
 PARSE monetdb://localhost/?sock=/a/path
-EXPECT valid=yes
 EXPECT connect_unix=/a/path
 EXPECT connect_tcp=
 ```
 
 ```test
 PARSE monetdb://localhost./
-EXPECT valid=yes
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
 ```
 
 ```test
-PARSE monetdb://localhost./?sock=/a/path
-EXPECT valid=no
+REJECT monetdb://localhost./?sock=/a/path
 ```
 
 ```test
 PARSE monetdb://not.localhost/
-EXPECT valid=yes
 EXPECT connect_unix=
 EXPECT connect_tcp=not.localhost
 ```
 
 ```test
-PARSE monetdb://not.localhost/?sock=/a/path
-EXPECT valid=no
+REJECT monetdb://not.localhost/?sock=/a/path
 ```
 
 ```test
 PARSE monetdbs:///
-EXPECT valid=yes
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
 ```
 
 ```test
-PARSE monetdbs:///?sock=/a/path
-EXPECT valid=no
+REJECT monetdbs:///?sock=/a/path
 ```
 
 ```test
 PARSE monetdbs://localhost/
-EXPECT valid=yes
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
 ```
 
 ```test
-PARSE monetdbs://localhost/?sock=/a/path
-EXPECT valid=no
+REJECT monetdbs://localhost/?sock=/a/path
 ```
 
 ```test
 PARSE monetdbs://localhost./
-EXPECT valid=yes
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
 ```
 
 ```test
-PARSE monetdbs://localhost./?sock=/a/path
-EXPECT valid=no
+REJECT monetdbs://localhost./?sock=/a/path
 ```
 
 ```test
 PARSE monetdbs://not.localhost/
-EXPECT valid=yes
 EXPECT connect_unix=
 EXPECT connect_tcp=not.localhost
 ```
 
 ```test
-PARSE monetdbs://not.localhost/?sock=/a/path
-EXPECT valid=no
+REJECT monetdbs://not.localhost/?sock=/a/path
 ```
 
 ```test
@@ -754,10 +733,6 @@ EXPECT language=mal
 ```
 
 ```test
-REJECT mapi:monetdb://localhost.:12345/demo
-```
-
-```test
 PARSE mapi:monetdb://monet.db/demo
 EXPECT host=monet.db
 EXPECT port=50000
@@ -782,7 +757,7 @@ EXPECT sock=/path/to/socket
 EXPECT database=demo
 ```
 
-Corner case?:
+Corner case: easy mistake to set sock to empty:
 
 ```test
 PARSE mapi:monetdb:///

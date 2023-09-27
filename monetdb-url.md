@@ -46,8 +46,6 @@ TODO field / property / attribute be consistent
   <dd>
     Try to connect to database 'demo' on TCP port 50000 on localhost (either IPv4
     or IPv6). Do not try the Unix Domain socket.
-
-    TODO BEFORE 0.2: or can it?
   </dd>
 
   <dt><code>monetdb://mdb.example.com:12345/demo</code></dt>
@@ -57,8 +55,7 @@ TODO field / property / attribute be consistent
 
   <dt><code>monetdb://192.168.13.4:12345/demo</code></dt>
   <dd>
-    Try to connect to database 'demo' on TCP
-    port 12345 on the given IPv4 address.
+    Try to connect to database 'demo' on TCP port 12345 on the given IPv4 address.
   </dd>
 
   <dt><code>monetdb://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:12345/demo</code></dt>
@@ -70,7 +67,7 @@ TODO field / property / attribute be consistent
   <dd>
     Try to connect to an unspecified database on <code>/tmp/.s.monetdb.50000</code>
     or if that fails, TCP port 50000 on localhost. Because no database name is given,
-    this will only work when to a raw mserver5.
+    this will only work when connecting to a raw mserver5.
   </dd>
 
   <dt><code>monetdbs://mdb.example.com/demo</code></dt>
@@ -83,7 +80,7 @@ TODO field / property / attribute be consistent
 
   <dt><code>monetdbs://mdb.example.com/demo?cert=/home/user/server.crt</code></dt>
   <dd>
-    Connect to mdb.example.com. 
+    Connect to mdb.example.com.
     Authenticate the server against the TLS certificate found in file /home/user/server.crt.
     Fail if the certificate is not present in the indicated location on the client host.
   </dd>
@@ -97,9 +94,9 @@ TODO field / property / attribute be consistent
 
   <dt><code>monetdb:///demo?sock=/var/monetdb/_sock&user=dbuser</code></dt>
   <dd>
-    Connect using the given Unix Domain socket in the client's file system. Do not use TCP.
-    This syntax departs from the old URL syntax, where it would be
-    <code>mapi:monet:///tmp/.s.monetdb.50000?database=demo</code>.
+    Connect using the given Unix domain socket in the client's file system. Do not use TCP.
+    Note: this syntax departs from the old URL syntax, where it would be
+    <code>mapi:monet:///var/monetdb/_sock?database=demo</code>.
   </dd>
 
 </dl>
@@ -130,49 +127,42 @@ existing settings specific to monetdb-jdbc.
 | Parameter       | Type    | Default     | Remark                                                                                  |
 | --------------- | ------- | ----------- | --------------------------------------------------------------------------------------- |
 | **tls**         | bool    | false       | (core) secure the connection using TLS                                                  |
-| **host**        | string  | absent      | (core) IP number, domain name or one of the special values `localhost` and `localhost.` |
+| **host**        | string  | ""          | (core) IP number, domain name or one of the special values `localhost` and `localhost.` |
 | **port**        | integer | 50000       | (core) TCP port, also used to pick Unix Domain socket path                              |
 | **database**    | string  | ""          | (core) name of database to connect to                                                   |
-| **tableschema** | string  | absent      | (core) only used for REMOTE TABLE, otherwise unused                                     |
-| **table**       | string  | absent      | (core) only used for REMOTE TABLE, otherwise unused                                     |
-| **sock**        | path    | absent      | path to Unix Domain socket to connect to                                                |
-| **cert**        | path    | absent      | path to TLS certificate to authenticate server with                                     |
-| **certhash**    | string  | absent      | hash of server TLS certificate must start with these hex digits; overrides cert         |
-| **clientkey**   | path    | absent      | path to TLS key (+certs) to authenticate with as client                                 |
-| **clientcert**  | path    | absent      | path to TLS certs for 'clientkey', if not included there                                |
+| **tableschema** | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
+| **table**       | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
+| **sock**        | path    | ""          | path to Unix Domain socket to connect to                                                |
+| **cert**        | path    | ""          | path to TLS certificate to authenticate server with                                     |
+| **certhash**    | string  | ""          | hash of server TLS certificate must start with these hex digits; overrides cert         |
+| **clientkey**   | path    | ""          | path to TLS key (+certs) to authenticate with as client                                 |
+| **clientcert**  | path    | ""          | path to TLS certs for 'clientkey', if not included there                                |
 | **user**        | string  | unspecified | user name to authenticate as                                                            |
 | **password**    | string  | unspecified | password to authenticate with                                                           |
 | **language**    | string  | "sql"       | for example, "sql", "mal", "msql", "profiler"                                           |
-| **autocommit**  | bool    | absent      | initial value of autocommit                                                             |
-| **schema**      | string  | absent      | initial schema                                                                          |
-| **timezone**    | integer | absent      | client time zone as minutes east of UTC                                                 |
+| **autocommit**  | bool    | unspecified | initial value of autocommit                                                             |
+| **schema**      | string  | ""          | initial schema                                                                          |
+| **timezone**    | integer | unspecified | client time zone as minutes east of UTC                                                 |
 | **binary**      | string  | "on"        | whether to use binary result set format (number or bool)                                |
-| **replysize**   | integer | absent      | rows beyond this limit are retrieved on demand, <1 means unlimited                      |
+| **replysize**   | integer | unspecified | rows beyond this limit are retrieved on demand, <1 means unlimited                      |
 | **fetchsize**   | integer | --          | alias for replysize, specific to jdbc                                                   |
 | **maxprefetch** | integer | unspecified | specific to pymonetdb                                                                   |
 | **hash**        | string  | unspecified | specific to jdbc                                                                        |
 | **debug**       | bool    | unspecified | specific to jdbc                                                                        |
 | **logfile**     | string  | unspecified | specific to jdbc                                                                        |
 
-In this table, the default 'absent' means no value is given. In Python that
-would be a `None`, in C and Java a `null`, etc. 'Unspecified' means that
-implementations pick their own default.
+The rules for interpreting parameter **host** are complicated and described in the
+next sections.
 
-In parameter **host**, value 'localhost' is equivalent to the value being
-absent. This means the implementation should try both Unix domain sockets and
-TCP sockets. The special string 'localhost.', with a trailing period, means
-localhost TCP-only.
-
-The default for the parameters **user** and **password** is left unspecified
-because historically, different implementations have used different defaults.
+Some default values have been left unspecified because they vary between the
+existing implementations. The most problematic of these are **user** and
+**password**, which sometimes default to monetdb/monetdb and sometimes to
+the empty string / not present.
 
 Parameter **fetchsize** is a true alias for **replysize**. This means that
 whenever an implementation encounters **fetchsize**, it should treat it as
-**replysize**. See also [Section Combining multiple
-sources](#combining-multiple-sources).
-
-TODO BEFORE 1.0: Decide whether to further define the meaning of **replysize**,
-**fetchsize** and **maxprefetch**.
+**replysize**.
+See also [Section Combining multiple sources](#combining-multiple-sources).
 
 
 ## Combining multiple sources
@@ -193,7 +183,7 @@ set of connection parameters. For example,
   [Properties]: https://docs.oracle.com/javase/8/docs/api/java/util/Properties.html
 
 * When connecting to monetdbd, monetdbd can redirect the client to a
-  new URL.  This, too is a situation in which sources are combined
+  new URL.  This too is a situation in which sources are combined
   because the new URL contains a new scheme, host name, port, database
   or socket, but other parameters should be retained from the existing
   connection.
@@ -207,7 +197,7 @@ apply:
 2. The defaults listed in [Section Parameters](#parameters) are considered the
    earliest source.
 
-2. A source that sets **user** MUST set **password**. If no sensible value is
+2. A source that changes **user** MUST change **password**. If no sensible value is
    available, **password** SHOULD be set to the empty string, even if that is
    not the default value for this implementation.
 
@@ -220,11 +210,6 @@ apply:
 4. If the source is a URL, all of **tls**, **host**, **port** and **database** MUST
    be set. If not specified in the URL, for example, `monetdb:///`, the default
    values must be used. This does not necessarily apply to other sources.
-
-TODO BEFORE 1.0: It actually makes more sense to me to apply the information
-from the URL first and then override it with the auxiliary information such as
-command line options and properties. But that would be an incompatible change to
-mclient and JDBC. Discuss with Sjoerd.
 
 
 ## URL Syntax
@@ -247,6 +232,12 @@ first ([RFC3986 Section 2.1][rfc3986percent]).
 
 The port number must be positive and at most 65535.
 
+Boolean values can be written as on/off, yes/no or true/false. Case does not matter.
+
+Integer values are written as decimal integers. In particular, hexadecimals are
+not supported and a leading zero does not cause the value to be interpreted as
+an octal number.
+
 The query parameters, that is, **param1**, **value1**, **param2**, **value2**,
 etc., MUST also be percent-decoded, separately. After decoding they MUST be used
 as additional connection parameters as described above. However, the parameters
@@ -256,24 +247,15 @@ MUST raise an error.
 
 If a parameter occurs multiple times, the last occurrence wins.
 
-Boolean values can be written as on/off, yes/no or true/false.
-
 Implementations MUST understand the square brackets IPv6-literal syntax
 ([RFC3986 Section 3.2.2][rfc3986host]). For example,
 `monetdb://[2001::2a]:12345/demo` MUST be parsed even if they underlying
 platform does not support IPv6.
 
-According to the RFC, IPv4 and IPv6 addresses are not percent-encoded but
-regular host names are. However, implementations MAY choose to ignore this
-distinction and percent-decode everything if that is more convenient.
-Similarly, when presented with a percent-encoded port implementations MAY choose
-to percent-decode it and see if this results in a suitable decimal number even
-though the RFC says that the port is not supposed to be percent encoded.
-
-TODO BEFORE 1.0: when we have a number of working implementations, say
-pymonetdb, jdbc and libmapi, revisit the allowances above to see if they are
-really needed. If all the platforms URL parsers do a great job it may not be
-needed.
+According to RFC 3986, IPv4 and IPv6 addresses are not
+percent-encoded but regular host names are. In MonetDB URLs however,
+if an implementation encounters a percent-encoded IP number, it MAY
+decode and accept it, but it MAY also reject it, whatever is more convenient.
 
 [rfc3986percent]: https://datatracker.ietf.org/doc/html/rfc3986#section-2.1
 [rfc3986host]: https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2
@@ -287,7 +269,7 @@ parameters satisfy the following constraints.
 1. The parameters have the types listed in the table in [Section
    Parameters](#parameters).
 
-2. If **sock** and **host** are both present, **host** must be equal
+2. If **sock** and **host** are both not empty, **host** must be equal
    to `localhost`. *(Unix domain sockets do not make sense anywhere
    except on the local host, and URL syntax does not allow a port number
    without some form of host identifier, hence, `localhost`.)*
@@ -295,12 +277,18 @@ parameters satisfy the following constraints.
 3. The string parameter **binary** must either parse as a boolean or as a
    non-negative integer.
 
-4. If **sock** is present, **tls** must be 'off'.
+4. If **sock** is not empty, **tls** must be 'off'.
 
-5. Parameter **database** must consist only of upper- and lowercase letters,
+6. If **certhash** is not empty, it must be of the form
+   `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
+   and hexdigits is a non-empty sequence of 0-9, a-f and underscores.
+
+6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
+
+7. Parameter **database** must consist only of upper- and lowercase letters,
    digits, dashes and underscores. It must not start with a dash.
 
-TODO BEFORE 1.0: figure out exactly where in the source
+TODO BEFORE 0.9: figure out exactly where in the source
 the name constraints on databases are defined.
 I only found something in merovingian.
 
@@ -311,28 +299,29 @@ Based on the given parameters, the implementation should compute a number of
   connect over a Unix domain socket, and if so, where. Take the first
   alternative that applies:
 
-  1. if **sock** is present, **connect_unix** has that value.
-  2. otherwise, if **tls** is True, **connect_unix** is absent.
-  3. otherwise, if **host** is absent or exactly equal to 'localhost',
-     **connect_unix** is <code>/tmp/.s.monetdb.<b>port</b></code>.
-  4. otherwise, **connect_unix** is absent.
+  1. if **sock** is not empty, **connect_unix** has that value.
+  2. otherwise, if **tls** is True, **connect_unix** is empty.
+  3. otherwise, if **host** is either empty or exactly equal to 'localhost' (without a trailing period),
+     **connect_unix** is derived from the port number as follows:
+     <code>/tmp/.s.monetdb.<b>port</b></code>.
+  4. otherwise, **connect_unix** is empty.
 
 * Virtual parameter **connect_tcp** (a host name or ip number) indicates whether
   to try to connect over TCP, and if so, to which host. Note that the host can
   expand to more than one IP number. In that case, the implementation must try
   them all.
 
-  1. if **sock** is present, **connect_tcp** is absent.
-  2. otherwise, if **host** is absent or exactly equal to 'localhost.' (with a trailing
+  1. if **sock** is not empty, **connect_tcp** is empty.
+  2. otherwise, if **host** is either empty or exactly equal to 'localhost.' (with a trailing
      period), **connect_tcp** is 'localhost'.
   3. otherwise, **connect_tcp** is equal to **host**.
 
 * Virtual parameter **connect_tls_verify** indicates how to verify the TLS
   certificate of the server.
 
-  1. if **tls** is 'off', **connect_tls_verify** is absent.
-  2. otherwise, if **certhash** is present, **connect_tls_verify** is 'hash'.
-  3. otherwise, if **cert** is present, **connect_tls_verify** is 'cert'.
+  1. if **tls** is 'off', **connect_tls_verify** is empty.
+  2. otherwise, if **certhash** is not empty, **connect_tls_verify** is 'hash'.
+  3. otherwise, if **cert** is not empty, **connect_tls_verify** is 'cert'.
   4. otherwise, **connect_tls_verify** is 'system'.
 
 * Virtual parameter **connect_binary** (an integer) is the interpretation of the
@@ -344,24 +333,27 @@ Based on the given parameters, the implementation should compute a number of
   3. if **binary** parses as the boolean False, **connect_binary** is 0.
 
 
-TODO BEFORE 1.0: do we allow TLS parameters such as **cert** and **certhash** when
-TLS is off? Reject or ignore?
-
-
 ## Connecting
 
-
-The procedure for establishing a connection is as follows. If the server sends a
+The procedure for establishing a connection is given below. If the server sends a
 redirect, multiple iterations may be necessary.
+
+In combination with the way the virtual parameters are computed in the previous
+section, this procedure is intended to be identical to the one described in the
+[comment at the start of `mapi_reconnect` in mapi.c][mapi_reconnect]
+in the MonetDB source code, with the exception of 'localhost.' with the trailing period
+meaning 'TCP-only'.
+
+[mapi_reconnect]: https://github.com/MonetDB/MonetDB/blob/d1ac6fe66bf095e17c40a863acc348bdb4aceb93/clients/mapilib/mapi.c#L2264-L2284
 
 1. Validate the parameters as described in the previous section.
 
-2. If Unix domain sockets are supported and  **connect_unix** is present, try to
+2. If Unix domain sockets are supported and  **connect_unix** is not empty, try to
    establish a connection to socket **connect_unix**. If this succeeds, skip the
    next step. If it fails, remember the error message and continue with the next
    step.
 
-3. If **connect_tcp** is present, try to establish a TCP connection to port
+3. If **connect_tcp** is not empty, try to establish a TCP connection to port
    **port** on that host. Note that the given host name may map to more than one
    IP, and a mix of IPv4 and IPv6 addresses.
 
@@ -370,18 +362,21 @@ redirect, multiple iterations may be necessary.
 
 5. If **tls** is enabled, perform a TLS handshake.
 
-   * If **clientkey** is present, load the key and if given the certificates in
-     **clientcert**. Offer them to the server as a client certificate. Abort with
-     an error if key and certificates cannot be read.
+   * If **clientkey** is not empty, load the private key and possibly certificate chain
+     from that file.
+     Same for the certificate chain in **clientcert**.
+     Offer them to the server as a client certificate. Abort with
+     an error if key or certificates cannot be read.
 
   * If **connect_tls_verify** is 'hash', verify that the hash of certificate
     offered by the server matches **certhash**. The certificate matches if the
     hexadecimal representation of the hash starts with the hexadecimal digits in
-    **certhash**. Note that **certhash** must match the leaf certificate of the
-    server, not any certificate higher up in the certificate chain. Abort if the
-    certificate does not match.
+    **certhash**. Use only the leaf certificate in the certificate chain. The other
+    certificates in the chain MUST be ignored. They MUST NOT be compared against
+    the hash and they MUST NOT be verified against any root certificate.
+    Abort if the certificate does not match.
 
-   * If **connect_tls_verify** is 'cert', load the certificate from file
+   * If **connect_tls_verify** is 'cert', read a certificate from file
      **cert**. Abort if that fails. Verify the certificate chain offered by the
      server against this certificate and abort if this fails.
 
@@ -394,8 +389,10 @@ redirect, multiple iterations may be necessary.
    announces itself as 'merovingian' rather than 'mserver'.
 
    * If the server sends an error message, abort with that message.
+
    * If sends a MAPI redirect to the exact URL `mapi:merovingian://proxy`,
      restart the current step.
+
    * If it sends a redirect to any other URL, parse the URL as an additional
      source in the sense of [Section Combining multiple
      sources](#combining-multiple-sources) and start over at Step 1.

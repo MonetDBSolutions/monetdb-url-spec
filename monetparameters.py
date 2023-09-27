@@ -20,7 +20,7 @@ PARAMS = [
           descr="secure the connection using TLS",
           core=True),
 
-    Param("host", "string", default="absent",
+    Param("host", "string", default='""',
           descr="IP number, domain name or one of the special values `localhost` and `localhost.`",
           core=True),
 
@@ -32,27 +32,27 @@ PARAMS = [
           descr="name of database to connect to",
           core=True),
 
-    Param("tableschema", "string", default="absent",
+    Param("tableschema", "string", default='""',
           descr="only used for REMOTE TABLE, otherwise unused",
           core=True),
 
-    Param("table", "string", default="absent",
+    Param("table", "string", default='""',
           descr="only used for REMOTE TABLE, otherwise unused",
           core=True),
 
-    Param("sock", "path", default="absent",
+    Param("sock", "path", default='""',
           descr="path to Unix Domain socket to connect to"),
 
-    Param("cert", "path", default="absent",
+    Param("cert", "path", default='""',
           descr="path to TLS certificate to authenticate server with"),
 
-    Param("certhash", "string", default="absent",
+    Param("certhash", "string", default='""',
           descr="hash of server TLS certificate must start with these hex digits; overrides cert"),
 
-    Param("clientkey", "path", default="absent",
+    Param("clientkey", "path", default='""',
           descr="path to TLS key (+certs) to authenticate with as client"),
 
-    Param("clientcert", "path", default="absent",
+    Param("clientcert", "path", default='""',
           descr="path to TLS certs for 'clientkey', if not included there"),
 
     Param("user", "string", default='unspecified',
@@ -64,19 +64,19 @@ PARAMS = [
     Param("language", "string", default='"sql"',
           descr='for example, "sql", "mal", "msql", "profiler"'),
 
-    Param("autocommit", "bool", default="absent",
+    Param("autocommit", "bool", default="unspecified",
           descr="initial value of autocommit"),
 
-    Param("schema", "string", default="absent",
+    Param("schema", "string", default='""',
           descr="initial schema"),
 
-    Param("timezone", "integer", default="absent",
+    Param("timezone", "integer", default="unspecified",
           descr="client time zone as minutes east of UTC"),
 
     Param("binary", "string", default='"on"',
           descr="whether to use binary result set format (number or bool)"),
 
-    Param("replysize", "integer", default="absent",
+    Param("replysize", "integer", default="unspecified",
           descr="rows beyond this limit are retrieved on demand, <1 means unlimited"),
 
     Param("fetchsize", "integer",
