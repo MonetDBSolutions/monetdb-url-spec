@@ -197,17 +197,17 @@ apply:
 2. The defaults listed in [Section Parameters](#parameters) are considered the
    earliest source.
 
-2. A source that changes **user** MUST change **password**. If no sensible value is
+3. A source that changes **user** MUST change **password**. If no sensible value is
    available, **password** SHOULD be set to the empty string, even if that is
    not the default value for this implementation.
 
-3. As described in [Section](#parameters), **fetchsize** MUST be treated as an
+4. As described in [Section](#parameters), **fetchsize** MUST be treated as an
    alias of **replysize**. If within one source, the parameters have an order,
    such as in a URL, the last occurrence (of either) wins. If there is no order,
    such as in a Java Properties object, **replysize** takes precedence over
    **fetchsize**.
 
-4. If the source is a URL, all of **tls**, **host**, **port** and **database** MUST
+5. If the source is a URL, all of **tls**, **host**, **port** and **database** MUST
    be set. If not specified in the URL, for example, `monetdb:///`, the default
    values must be used. This does not necessarily apply to other sources.
 
@@ -279,7 +279,7 @@ parameters satisfy the following constraints.
 
 4. If **sock** is not empty, **tls** must be 'off'.
 
-6. If **certhash** is not empty, it must be of the form
+5. If **certhash** is not empty, it must be of the form
    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
    and hexdigits is a non-empty sequence of 0-9, a-f and underscores.
 
@@ -362,42 +362,42 @@ meaning 'TCP-only'.
 
 5. If **tls** is enabled, perform a TLS handshake.
 
-   * If **clientkey** is not empty, load the private key and possibly certificate chain
-     from that file.
-     Same for the certificate chain in **clientcert**.
-     Offer them to the server as a client certificate. Abort with
-     an error if key or certificates cannot be read.
+    * If **clientkey** is not empty, load the private key and possibly certificate chain
+      from that file.
+      Same for the certificate chain in **clientcert**.
+      Offer them to the server as a client certificate. Abort with
+      an error if key or certificates cannot be read.
 
-  * If **connect_tls_verify** is 'hash', verify that the hash of certificate
-    offered by the server matches **certhash**. The certificate matches if the
-    hexadecimal representation of the hash starts with the hexadecimal digits in
-    **certhash**. Use only the leaf certificate in the certificate chain. The other
-    certificates in the chain MUST be ignored. They MUST NOT be compared against
-    the hash and they MUST NOT be verified against any root certificate.
-    Abort if the certificate does not match.
+    * If **connect_tls_verify** is 'hash', verify that the hash of certificate
+      offered by the server matches **certhash**. The certificate matches if the
+      hexadecimal representation of the hash starts with the hexadecimal digits in
+      **certhash**. Use only the leaf certificate in the certificate chain. The other
+      certificates in the chain MUST be ignored. They MUST NOT be compared against
+      the hash and they MUST NOT be verified against any root certificate.
+      Abort if the certificate does not match.
 
-   * If **connect_tls_verify** is 'cert', read a certificate from file
-     **cert**. Abort if that fails. Verify the certificate chain offered by the
-     server against this certificate and abort if this fails.
+    * If **connect_tls_verify** is 'cert', read a certificate from file
+      **cert**. Abort if that fails. Verify the certificate chain offered by the
+      server against this certificate and abort if this fails.
 
-  * Finally, if **connect_tls_verify** is 'system', verify the certificate chain
-    against the platforms trusted root certificate store and abort if this
-    fails.
+    * Finally, if **connect_tls_verify** is 'system', verify the certificate chain
+      against the platforms trusted root certificate store and abort if this
+      fails.
 
-5. Perform a MAPI login using **user**, **password**, **database** and
+6. Perform a MAPI login using **user**, **password**, **database** and
    **language**. Use dummy values for **user** and **password** if the server
    announces itself as 'merovingian' rather than 'mserver'.
 
-   * If the server sends an error message, abort with that message.
+    * If the server sends an error message, abort with that message.
 
-   * If sends a MAPI redirect to the exact URL `mapi:merovingian://proxy`,
-     restart the current step.
+    * If sends a MAPI redirect to the exact URL `mapi:merovingian://proxy`,
+      restart the current step.
 
-   * If it sends a redirect to any other URL, parse the URL as an additional
-     source in the sense of [Section Combining multiple
-     sources](#combining-multiple-sources) and start over at Step 1.
+    * If it sends a redirect to any other URL, parse the URL as an additional
+      source in the sense of [Section Combining multiple
+      sources](#combining-multiple-sources) and start over at Step 1.
 
-6. Further configure the connection using **autocommit**, **timezone**, **replysize**
+7. Further configure the connection using **autocommit**, **timezone**, **replysize**
    and **schema**. If binary is supported, combine **connect_binary** with the binary
    level advertised by the server and remember the minimum for later use.
 

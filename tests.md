@@ -21,13 +21,13 @@ keywords:
 At the start of each block the parameters are reset to their default values.
 
 The EXPECT clause can verify all parameters listen in the Parameters section of
-the spec, all 'virtual parameters' and also the special case 'valid' which is a
+the spec, all 'virtual parameters' and also the special case `valid` which is a
 boolean indicating whether all validity rules in section 'Interpreting the
 parameters' hold.
 
 Note: an `EXPECT` of the virtual parameters implies `EXPECT valid=true`,
 as do `PARSE` and `REJECT`. In the case of `PARSE`, `valid` must be true.
-In the case of `REJECT`, if the URL is syntactically correct but `valid=false`,
+In the case of `REJECT`, if the URL is syntactically correct but `valid` is false,
 this is considered a succesful rejection of the URL.
 
 TODO before 1.0 does the above explanation make sense?
