@@ -93,6 +93,7 @@ struct mapi_params {
 	bool bool_params[CP__BOOL_END - CP__BOOL_START];
 	long long_params[CP__LONG_END - CP__LONG_START];
 	char *string_parameters[CP__STRING_END - CP__STRING_START];
+	bool validated;
 };
 
 
@@ -129,6 +130,7 @@ mapi_params *mapi_params_create(void)
 			[CP_SCHEMA - CP__STRING_START] = NULL,
 			[CP_BINARY - CP__STRING_START] = binary_on,
 		},
+		.validated = false,
 	};
 	return mp;
 }
@@ -170,6 +172,7 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 	char **slot = &mp->string_parameters[parm - CP__STRING_START];
 	free(*slot);
 	*slot = v;
+	mp->validated = false;
 	return NULL;
 }
 
@@ -189,6 +192,7 @@ mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 	if (parm < CP__LONG_START || parm >= CP__LONG_END)
 		FATAL();
 	mp->long_params[parm - CP__LONG_START] = value;
+	mp->validated = false;
 	return NULL;
 }
 
@@ -208,6 +212,7 @@ mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value)
 	if (parm < CP__BOOL_START || parm >= CP__BOOL_END)
 		FATAL();
 	mp->bool_params[parm - CP__BOOL_START] = value;
+	mp->validated = false;
 	return NULL;
 }
 
