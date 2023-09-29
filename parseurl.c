@@ -256,6 +256,8 @@ parse_modern(mapi_params *mp, scanner *sc)
 			break;
 		advance(sc);
 		char *database = scan(sc, generic_special);
+		if (!percent_decode(sc, "database", database))
+			return false;
 		if (!store(mp, sc, CP_DATABASE, database))
 			return false;
 
@@ -264,6 +266,8 @@ parse_modern(mapi_params *mp, scanner *sc)
 			break;
 		advance(sc);
 		char *schema = scan(sc, generic_special);
+		if (!percent_decode(sc, "schema", schema))
+			return false;
 		if (!store(mp, sc, CP_TABLESCHEMA, schema))
 			return false;
 
@@ -272,6 +276,8 @@ parse_modern(mapi_params *mp, scanner *sc)
 			break;
 		advance(sc);
 		char *table = scan(sc, generic_special);
+		if (!percent_decode(sc, "table", table))
+			return false;
 		if (!store(mp, sc, CP_TABLE, table))
 			return false;
 
