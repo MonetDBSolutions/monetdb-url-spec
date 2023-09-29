@@ -111,6 +111,8 @@ struct mapi_params {
 	char *string_parameters[CP__STRING_END - CP__STRING_START];
 	char **unknown_parameters;
 	size_t nr_unknown;
+	long user_generation;
+	long password_generation;
 	char unix_sock_name_buffer[50];
 	const char *certhash_algo;
 	char certhash_digits_buffer[33];
@@ -200,7 +202,13 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 	char **slot = &mp->string_parameters[parm - CP__STRING_START];
 	free(*slot);
 	*slot = v;
+
+	if (parm == CP_USER)
+		mp->user_generation++;
+	if (parm == CP_PASSWORD)
+		mp->password_generation++;
 	mp->validated = false;
+
 	return NULL;
 }
 
@@ -509,4 +517,19 @@ mapi_param_connect_binary(const mapi_params *mp)
 		return level;
 
 	return -1;
+}
+
+
+/* automatically incremented each time the corresponding field is updated */
+long
+mapi_param_user_generation(const mapi_params *mp)
+{
+	return mp->user_generation;
+}
+
+/* automatically incremented each time the corresponding field is updated */
+long
+mapi_param_password_generation(const mapi_params *mp)
+{
+	return mp->password_generation;
 }

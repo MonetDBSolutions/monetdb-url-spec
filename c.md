@@ -31,7 +31,11 @@ PARSE mapi:monetdb://
 PARSE monetdb://[abc]
 ```
 
-
 ```test
-REJECT monetdbs://mdb.example.com/demo?certhash=X
+SET user=alan
+SET password=turing
+PARSE monetdbs:///?user=mathison
+EXPECT user=mathison
+EXPECT password=
 ```
+

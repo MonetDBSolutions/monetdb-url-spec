@@ -341,6 +341,9 @@ bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
 	mapi_param_set_long(mp, CP_PORT, 50000);
 	mapi_param_set_string(mp, CP_DATABASE, "");
 
+	long user_gen = mapi_param_user_generation(mp);
+	long password_gen = mapi_param_password_generation(mp);
+
 	if (parse(mp, &sc)) {
 		// went well
 		if (error_buffer)
@@ -353,6 +356,17 @@ bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
 		if (error_buffer)
 			*error_buffer = msg;
 		ok = false;
+	}
+
+	long new_user_gen = mapi_param_user_generation(mp);
+	long new_password_gen = mapi_param_password_generation(mp);
+	if (new_user_gen > user_gen && new_password_gen == password_gen) {
+		mapi_params_error msg = mapi_param_set_string(mp, CP_PASSWORD, "");
+		if (msg) {
+			if (error_buffer)
+				*error_buffer = strdup(msg);
+			ok = false;
+		}
 	}
 
 	deinitialize(&sc);

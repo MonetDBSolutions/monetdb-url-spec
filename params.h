@@ -90,3 +90,7 @@ const char *mapi_param_connect_tls_verify(const mapi_params *mp);
 const char *mapi_param_connect_certhash_algo(const mapi_params *mp);
 const char *mapi_param_connect_certhash_digits(const mapi_params *mp);
 long mapi_param_connect_binary(const mapi_params *mp);
+
+/* automatically incremented each time the corresponding field is updated */
+long mapi_param_user_generation(const mapi_params *mp);
+long mapi_param_password_generation(const mapi_params *mp);

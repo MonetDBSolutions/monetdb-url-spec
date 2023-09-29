@@ -516,14 +516,14 @@ EXPECT user=mathison
 EXPECT password=
 ```
 
-The rule is, "if **user** changed", not "if **user** is set".
+The rule is, "if **user** set", not "if **user** is changed".
 
 ```test
 SET user=alan
 SET password=turing
 PARSE monetdbs:///?user=alan
 EXPECT user=alan
-EXPECT password=turing
+EXPECT password=
 ```
 
 ## URL syntax
