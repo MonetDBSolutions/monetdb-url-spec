@@ -825,12 +825,31 @@ EXPECT valid=no
 # Legacy URL's
 
 ```test
+REJECT mapi:
+REJECT mapi:monetdb
+REJECT mapi:monetdb:
+REJECT mapi:monetdb:/
+```
+
+```testNONONONONONONO
+PARSE mapi:monetdb://
+EXPECT connect_unix=/tmp/.s.monetdb.50000
+EXPECT connect_tcp=localhost
+EXPECT port=50000
+```
+
+```test
 PARSE mapi:monetdb://monet.db:12345/demo
 EXPECT host=monet.db
 EXPECT port=12345
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
+```
+
+```test
+PARSE mapi:monetdb://localhost:12345/demo
+
 ```
 
 ```test

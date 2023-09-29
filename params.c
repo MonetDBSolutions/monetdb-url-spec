@@ -332,6 +332,23 @@ mapi_param_set_ignored(mapi_params *mp, const char *key, const char *value)
 	return NULL;
 }
 
+/* store named parameter */
+mapi_params_error
+mapi_param_set_named(mapi_params *mp, bool allow_core, const char *key, const char *value)
+{
+	mapiparm parm = mapiparm_parse(key);
+	if (parm == CP_UNKNOWN)
+		return "unknown parameter";
+
+	if (parm == CP_IGNORE)
+		return mapi_param_set_ignored(mp, key, value);
+
+	if (!allow_core && mapiparm_is_core(parm))
+		return "parameter not allowed here";
+
+	return mapi_param_from_text(mp, parm, value);
+}
+
 
 static bool
 empty(const mapi_params *mp, mapiparm parm)

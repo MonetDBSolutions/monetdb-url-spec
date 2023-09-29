@@ -52,21 +52,14 @@ handle_reject_command(const char *location, char *url)
 }
 
 static bool
-handle_set_command(const char *location, char *key, char *value)
+handle_set_command(const char *location, const char *key, const char *value)
 {
-	mapiparm parm = mapiparm_parse(key);
-	if (parm == CP_UNKNOWN) {
-		fprintf(stderr, "%s: unknown parameter '%s'\n", location, key);
+	mapi_params_error msg = mapi_param_set_named(mp, true, key, value);
+	if (msg) {
+		fprintf(stderr, "%s: cannot set '%s': %s\n", location, key, msg);
 		return false;
 	}
-
-	if (parm == CP_IGNORE) {
-		mapi_params_error msg = mapi_param_set_ignored(mp, key, value);
-		return msg == NULL;
-	}
-
-	mapi_params_error msg = mapi_param_from_text(mp, parm, value);
-	return msg == NULL;
+	return true;
 }
 
 static bool

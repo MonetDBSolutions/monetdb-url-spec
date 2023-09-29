@@ -197,6 +197,23 @@ scan(scanner *sc, enum character_class level)
 	return token;
 }
 
+static char *
+find(scanner *sc, const char *delims)
+{
+	assert(!has_failed(sc));
+	char *token = sc->p;
+
+	while (sc->c) {
+		for (const char *d = delims; *d; d++)
+			if (sc->c == *d) {
+				*sc->p = '\0';
+				return token;
+			}
+		advance(sc);
+	}
+	return token;
+}
+
 static bool
 store(mapi_params *mp, scanner *sc, mapiparm parm, const char *value)
 {
@@ -207,13 +224,61 @@ store(mapi_params *mp, scanner *sc, mapiparm parm, const char *value)
 		return true;
 }
 
+static bool
+scan_query_parameters(scanner *sc, char **key, char **value)
+{
+		*key = scan(sc, very_special);
+		if (strlen(*key) == 0)
+			return complain(sc, "parameter name must not be empty");
+
+		if (!consume(sc, "="))
+			return false;
+		*value = find(sc, "&#");
+
+		return true;
+}
+
+static bool
+parse_path(mapi_params *mp, scanner *sc)
+{
+	// parse the database name
+	if (sc->c != '/')
+		return true;
+	advance(sc);
+	char *database = scan(sc, generic_special);
+	if (!percent_decode(sc, "database", database))
+		return false;
+	if (!store(mp, sc, CP_DATABASE, database))
+		return false;
+
+	// parse the schema name
+	if (sc->c != '/')
+		return true;
+	advance(sc);
+	char *schema = scan(sc, generic_special);
+	if (!percent_decode(sc, "schema", schema))
+		return false;
+	if (!store(mp, sc, CP_TABLESCHEMA, schema))
+		return false;
+
+	// parse the table name
+	if (sc->c != '/')
+		return true;
+	advance(sc);
+	char *table = scan(sc, generic_special);
+	if (!percent_decode(sc, "table", table))
+		return false;
+	if (!store(mp, sc, CP_TABLE, table))
+		return false;
+
+	return true;
+}
 
 static bool
 parse_modern(mapi_params *mp, scanner *sc)
 {
 	if (!consume(sc, "//"))
 		return false;
-
 
 	// parse the host
 	if (sc->c == '[') {
@@ -246,66 +311,80 @@ parse_modern(mapi_params *mp, scanner *sc)
 			return false;
 	}
 
-	// used for early break, not a real loop
-	do {
-		// parse the database name
-		if (sc->c != '/')
-			break;
-		advance(sc);
-		char *database = scan(sc, generic_special);
-		if (!percent_decode(sc, "database", database))
-			return false;
-		if (!store(mp, sc, CP_DATABASE, database))
-			return false;
-
-		// parse the schema name
-		if (sc->c != '/')
-			break;
-		advance(sc);
-		char *schema = scan(sc, generic_special);
-		if (!percent_decode(sc, "schema", schema))
-			return false;
-		if (!store(mp, sc, CP_TABLESCHEMA, schema))
-			return false;
-
-		// parse the table name
-		if (sc->c != '/')
-			break;
-		advance(sc);
-		char *table = scan(sc, generic_special);
-		if (!percent_decode(sc, "table", table))
-			return false;
-		if (!store(mp, sc, CP_TABLE, table))
-			return false;
-
-	} while (false);
+	if (!parse_path(mp, sc))
+		return false;
 
 	// parse query parameters
 	if (sc->c == '?') {
 		do {
-			advance(sc);
-			char *key = scan(sc, very_special);
-			if (strlen(key) == 0)
-				return complain(sc, "parameter name must not be empty");
+			advance(sc);  // skip ? or &
+
+			char *key;
+			char *value;
+			if (!scan_query_parameters(sc, &key, &value))
+				return false;
+
 			if (!percent_decode(sc, "parameter name", key))
 				return false;
-			if (!consume(sc, "="))
-				return false;
-			char *value = scan(sc, very_special);
 			if (!percent_decode(sc, key, value))
 				return false;
-			const mapiparm parm = mapiparm_parse(key);
-			if (parm == CP_UNKNOWN) {
-				return complain(sc, "unknown parameter '%s'", key);
-			} else if (parm == CP_IGNORE) {
-				mapi_params_error msg = mapi_param_set_ignored(mp, key, value);
-				if (msg != NULL)
-					return complain(sc, "cannot set '%s' to '%s': %s", key, value, msg);
-			} else if (mapiparm_is_core(parm)) {
-					return complain(sc, "key '%s' not allowed in URL parameters", key);
-			} else {
-				if (!store(mp, sc, parm, value))
-					return false;
+
+			mapi_params_error msg = mapi_param_set_named(mp, false, key, value);
+			if (msg)
+				return complain(sc, "%s: %s", key, msg);
+		} while (sc->c == '&');
+	}
+
+	// should have consumed everything
+	if (sc->c != '\0' && sc-> c != '#')
+		return unexpected(sc);
+
+	return true;
+}
+
+static bool
+parse_classic_tcp(mapi_params *mp, scanner *sc)
+{
+	// parse the host
+	char *host = scan(sc, generic_special);
+	if (sc->c == ':' && strlen(host) == 0) {
+		// cannot port number without host, so this is not allowed: monetdb://:50000
+		return unexpected(sc);
+	}
+	// no percent decoding
+	if (!store(mp, sc, CP_HOST, host))
+		return false;
+
+	// parse the port
+	if (sc->c == ':') {
+		advance(sc);
+		char *port = scan(sc, generic_special);
+		if (!store(mp, sc, CP_PORT, port))
+			return false;
+	}
+
+	if (!parse_path(mp, sc))
+		return false;
+
+	if (sc->c == '?') {
+		do {
+			advance(sc); // skip & or ?
+
+			char *key;
+			char *value;
+			if (!scan_query_parameters(sc, &key, &value))
+				return false;
+			mapiparm parm = mapiparm_parse(key);
+			switch (parm) {
+				case CP_DATABASE:
+				case CP_LANGUAGE:
+					mapi_params_error msg = mapi_param_set_string(mp, parm, value);
+					if (msg)
+						return complain(sc, "parameter '%s': %s", key, msg);
+					break;
+				default:
+					// ignore
+					break;
 			}
 		} while (sc->c == '&');
 	}
@@ -317,14 +396,23 @@ parse_modern(mapi_params *mp, scanner *sc)
 	return true;
 }
 
+static bool
+parse_classic_unix(mapi_params *mp, scanner *sc)
+{
+	(void)mp;
+	return complain(sc, "mapi:/// not supported yet");
+}
 
 static bool
 parse_classic(mapi_params *mp, scanner *sc)
 {
 	if (!consume(sc, "monetdb://"))
+		return false;
 
-	(void)mp;
-	return complain(sc, "mapi: URLs are not supported yet");
+	if (sc->c == '/')
+		return parse_classic_unix(mp, sc);
+	else
+		return parse_classic_tcp(mp, sc);
 }
 
 static bool
@@ -343,7 +431,7 @@ parse(mapi_params *mp, scanner *sc)
 		mapi_param_set_bool(mp, CP_TLS, true);
 		return parse_modern(mp, sc);
 	} else if (strcmp(scheme, "mapi") == 0) {
-		mapi_param_set_bool(mp, CP_TLS, true);
+		mapi_param_set_bool(mp, CP_TLS, false);
 		return parse_classic(mp, sc);
 	} else {
 		return complain(sc, "unknown scheme '%s'", scheme);

@@ -31,11 +31,10 @@ PARSE mapi:monetdb://
 PARSE monetdb://[abc]
 ```
 
+
+
 ```test
-REJECT monetdb://foo:1/bar?tls=off
-REJECT monetdb://foo:1/bar?host=localhost
-REJECT monetdb://foo:1/bar?port=12345
-REJECT monetdb://foo:1/bar?database=allmydata
-REJECT monetdb://foo:1/bar?tableschema=banana
-REJECT monetdb://foo:1/bar?table=tabularity
+PARSE mapi:monetdb://monet.db:12345/demo
+EXPECT tls=off
 ```
+

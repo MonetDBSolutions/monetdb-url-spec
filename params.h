@@ -72,6 +72,8 @@ char *mapi_param_to_text(mapi_params *mp, mapiparm parm);
 /* store ignored parameter */
 mapi_params_error mapi_param_set_ignored(mapi_params *mp, const char *key, const char *value);
 
+/* store named parameter */
+mapi_params_error mapi_param_set_named(mapi_params *mp, bool allow_core, const char *key, const char *value);
 
 /* update the mapi_params from the URL. set *error_buffer to NULL and return true
  * if success, set *error_buffer to malloc'ed error message and return false on failure.
