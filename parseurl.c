@@ -249,13 +249,33 @@ parse_modern(mapi_params *mp, scanner *sc)
 			return false;
 	}
 
-	// parse the database name
-	if (sc->c == '/') {
+	// used for early break, not a real loop
+	do {
+		// parse the database name
+		if (sc->c != '/')
+			break;
 		advance(sc);
 		char *database = scan(sc, generic_special);
 		if (!store(mp, sc, CP_DATABASE, database))
 			return false;
-	}
+
+		// parse the schema name
+		if (sc->c != '/')
+			break;
+		advance(sc);
+		char *schema = scan(sc, generic_special);
+		if (!store(mp, sc, CP_TABLESCHEMA, schema))
+			return false;
+
+		// parse the table name
+		if (sc->c != '/')
+			break;
+		advance(sc);
+		char *table = scan(sc, generic_special);
+		if (!store(mp, sc, CP_TABLE, table))
+			return false;
+
+	} while (false);
 
 	// parse query parameters
 	if (sc->c == '?') {
