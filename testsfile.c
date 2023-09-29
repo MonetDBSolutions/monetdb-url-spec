@@ -161,6 +161,26 @@ expect_string(const char *location, const mapiparm *parm, const char *(*extract)
 static bool
 handle_expect_command(const char *location, char *key, char *value)
 {
+	if (strcmp("valid", key) == 0) {
+		int x = parse_bool(value);
+		if (x < 0) {
+			fprintf(stderr, "%s: invalid boolean value: %s\n", location, value);
+			return false;
+		}
+		bool expected = x > 0;
+		mapi_params_error msg = mapi_param_validate(mp);
+		bool actual = msg == NULL;
+		if (actual != expected) {
+			fprintf(stderr, "%s: expected '%s', found '%s'\n",
+				location,
+				expected ? "true" : "false",
+				actual ? "true" : "false"
+			);
+			return false;
+		}
+		return true;
+	}
+
 	if (strcmp("connect_unix", key) == 0)
 		return expect_string(location, NULL, mapi_param_connect_unix, value);
 	if (strcmp("connect_tcp", key) == 0)

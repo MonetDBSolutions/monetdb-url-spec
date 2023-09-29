@@ -32,10 +32,10 @@ PARSE monetdb://[abc]
 ```
 
 ```test
-SET user=alan
-SET password=turing
-PARSE monetdbs:///?user=mathison
-EXPECT user=mathison
-EXPECT password=
+REJECT monetdb://foo:1/bar?tls=off
+REJECT monetdb://foo:1/bar?host=localhost
+REJECT monetdb://foo:1/bar?port=12345
+REJECT monetdb://foo:1/bar?database=allmydata
+REJECT monetdb://foo:1/bar?tableschema=banana
+REJECT monetdb://foo:1/bar?table=tabularity
 ```
-

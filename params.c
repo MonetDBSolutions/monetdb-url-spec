@@ -105,6 +105,22 @@ mapiparm_is_ignored(const char *name)
 	return false;
 }
 
+bool
+mapiparm_is_core(mapiparm parm)
+{
+	switch (parm) {
+		case CP_TLS:
+		case CP_HOST:
+		case CP_PORT:
+		case CP_DATABASE:
+		case CP_TABLESCHEMA:
+		case CP_TABLE:
+			return true;
+		default:
+			return false;
+	}
+}
+
 struct mapi_params {
 	bool bool_params[CP__BOOL_END - CP__BOOL_START];
 	long long_params[CP__LONG_END - CP__LONG_START];
@@ -227,6 +243,9 @@ mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 {
 	if (parm < CP__LONG_START || parm >= CP__LONG_END)
 		FATAL();
+	if (parm == CP_PORT)
+		if (value < 1 || value > 65535)
+			return "port number out of range";
 	mp->long_params[parm - CP__LONG_START] = value;
 	mp->validated = false;
 	return NULL;
@@ -376,6 +395,22 @@ validate_certhash(mapi_params *mp)
 	return NULL;
 }
 
+static bool
+validate_identifier(const char *name)
+{
+	int first = name[0];
+	if (first == '\0')
+		return true;
+	if (first != '_' && !isalpha(first))
+		return false;
+	for (const char *p = name; *p; p++) {
+		bool ok = (isalnum(*p) || *p == '-' || *p == '_');
+		if (!ok)
+			return false;
+	}
+	return true;
+}
+
 mapi_params_error
 mapi_param_validate(mapi_params *mp)
 {
@@ -419,9 +454,15 @@ mapi_param_validate(mapi_params *mp)
 	// 7. Parameter **database** must consist only of upper- and lowercase letters,
 	//    digits, dashes and underscores. It must not start with a dash.
 	//
-	// TODO
-
-
+	const char *database = mapi_param_string(mp, CP_DATABASE);
+	if (!validate_identifier(database))
+		return "invalid database name";
+	const char *tableschema = mapi_param_string(mp, CP_TABLESCHEMA);
+	if (!validate_identifier(tableschema))
+		return "invalid schema name";
+	const char *table = mapi_param_string(mp, CP_TABLE);
+	if (!validate_identifier(table))
+		return "invalid table name";
 
 	// compute this here so the getter function can take const mapi_params*
 	long port = mapi_param_long(mp, CP_PORT);

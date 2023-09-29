@@ -761,6 +761,66 @@ SET database=with?questionmark
 EXPECT valid=no
 ```
 
+```test
+SET tableschema=
+EXPECT valid=yes
+SET tableschema=banana
+EXPECT valid=yes
+SET tableschema=UPPERCASE
+EXPECT valid=yes
+SET tableschema=_under_score_
+EXPECT valid=yes
+SET tableschema=with-dashes
+EXPECT valid=yes
+```
+
+```test
+SET tableschema=with/slash
+EXPECT valid=no
+SET tableschema=-flag
+EXPECT valid=no
+SET tableschema=with space
+EXPECT valid=no
+SET tableschema=with.period
+EXPECT valid=no
+SET tableschema=with%percent
+EXPECT valid=no
+SET tableschema=with!exclamation
+EXPECT valid=no
+SET tableschema=with?questionmark
+EXPECT valid=no
+```
+
+```test
+SET table=
+EXPECT valid=yes
+SET table=banana
+EXPECT valid=yes
+SET table=UPPERCASE
+EXPECT valid=yes
+SET table=_under_score_
+EXPECT valid=yes
+SET table=with-dashes
+EXPECT valid=yes
+```
+
+```test
+SET table=with/slash
+EXPECT valid=no
+SET table=-flag
+EXPECT valid=no
+SET table=with space
+EXPECT valid=no
+SET table=with.period
+EXPECT valid=no
+SET table=with%percent
+EXPECT valid=no
+SET table=with!exclamation
+EXPECT valid=no
+SET table=with?questionmark
+EXPECT valid=no
+```
+
 
 # Legacy URL's
 

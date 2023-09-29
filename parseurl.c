@@ -228,9 +228,6 @@ parse_modern(mapi_params *mp, scanner *sc)
 			return false;
 	} else {
 		char *host = scan(sc, generic_special);
-		if (sc->c != ':' && sc->c != '/' && sc->c != '\0')
-			return unexpected(sc);
-
 		if (!percent_decode(sc, "host name", host))
 			return false;
 		if (sc->c == ':' && strlen(host) == 0) {
@@ -299,6 +296,8 @@ parse_modern(mapi_params *mp, scanner *sc)
 				return false;
 			const mapiparm *parm = mapiparm_parse(key);
 			if (parm != NULL) {
+				if (mapiparm_is_core(*parm))
+					return complain(sc, "key '%s' not allowed in URL parameters", key);
 				if (!store(mp, sc, *parm, value))
 					return false;
 			} else if (mapiparm_is_ignored(key)) {
