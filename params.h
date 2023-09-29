@@ -82,3 +82,7 @@ mapi_params_error mapi_param_validate(mapi_params *mp);
 /* virtual parameters */
 const char *mapi_param_connect_unix(const mapi_params *mp);
 const char *mapi_param_connect_tcp(const mapi_params *mp);
+const char *mapi_param_connect_tls_verify(const mapi_params *mp);
+const char *mapi_param_connect_certhash_algo(const mapi_params *mp);
+const char *mapi_param_connect_certhash_digits(const mapi_params *mp);
+long mapi_param_connect_binary(const mapi_params *mp);

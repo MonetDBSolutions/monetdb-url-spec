@@ -3,6 +3,7 @@
 #include "params.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +30,7 @@ int parse_bool(const char *text)
 
 
 static const struct { const char *name;  mapiparm parm; }
-by_name[CP__NUMBER_OF_PARAMETERS] = {
+by_name[] = {
 	{ .name="autocommit", .parm=CP_AUTOCOMMIT },
 	{ .name="binary", .parm=CP_BINARY },
 	{ .name="cert", .parm=CP_CERT },
@@ -42,6 +43,7 @@ by_name[CP__NUMBER_OF_PARAMETERS] = {
 	{ .name="password", .parm=CP_PASSWORD },
 	{ .name="port", .parm=CP_PORT },
 	{ .name="replysize", .parm=CP_REPLYSIZE },
+	{ .name="fetchsize", .parm=CP_REPLYSIZE },
 	{ .name="schema", .parm=CP_SCHEMA },
 	{ .name="sock", .parm=CP_SOCK },
 	{ .name="table", .parm=CP_TABLE },
@@ -94,6 +96,8 @@ struct mapi_params {
 	long long_params[CP__LONG_END - CP__LONG_START];
 	char *string_parameters[CP__STRING_END - CP__STRING_START];
 	char unix_sock_name_buffer[50];
+	const char *certhash_algo;
+	char certhash_digits_buffer[33];
 	bool validated;
 };
 
@@ -279,6 +283,42 @@ nonempty(const mapi_params *mp, mapiparm parm)
 	return !empty(mp, parm);
 }
 
+static mapi_params_error
+validate_certhash(mapi_params *mp)
+{
+	mp->certhash_algo = "sha1";
+	mp->certhash_digits_buffer[0] = '\0';
+
+	const char *certhash = mapi_param_string(mp, CP_CERTHASH);
+	if (*certhash == '\0')
+		return NULL;
+
+	if (strncasecmp(certhash, "{sha1}", 6) == 0) {
+		mp->certhash_algo = "sha1";
+		certhash += 6;
+	} else if (strncasecmp(certhash, "{sha256}", 8) == 0) {
+		mp->certhash_algo = "sha256";
+		certhash += 8;
+	} else if (certhash[0] == '{') {
+		return "certhash: invalid algorithm";
+	}
+
+	const int n = 32;
+	assert(sizeof(mp->certhash_digits_buffer) >= n + 1);
+	int i = 0;
+	for (const char *r = certhash; *r; r++) {
+		if (*r == ':')
+			continue;
+		if (!isxdigit(*r))
+			return "certhash: invalid hex digit";
+		if (i == n)
+			return "certhash: too long";
+		mp->certhash_digits_buffer[i++] = tolower(*r);
+	}
+
+	return NULL;
+}
+
 mapi_params_error
 mapi_param_validate(mapi_params *mp)
 {
@@ -297,8 +337,11 @@ mapi_param_validate(mapi_params *mp)
 
 	// 3. The string parameter **binary** must either parse as a boolean or as a
 	//    non-negative integer.
-	if (strcmp("on", mapi_param_string(mp, CP_BINARY)) != 0)
-		return "validate function incomplete, implement it better!";
+	mp->validated = true;
+	long level = mapi_param_connect_binary(mp);
+	mp->validated = false;
+	if (level < 0)
+		return "invalid value for parameter 'binary'";
 
 	// 4. If **sock** is not empty, **tls** must be 'off'.
 	if (nonempty(mp, CP_SOCK) && mapi_param_bool(mp, CP_TLS))
@@ -307,8 +350,9 @@ mapi_param_validate(mapi_params *mp)
 	// 5. If **certhash** is not empty, it must be of the form
 	//    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
 	//    and hexdigits is a non-empty sequence of 0-9, a-f and underscores.
-	if (nonempty(mp, CP_CERTHASH))
-		return "validate function incomplete, implement it better!";
+	const char *certhash_msg = validate_certhash(mp);
+	if (certhash_msg)
+		return certhash_msg;
 
 	// 6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
 	if (nonempty(mp, CP_CERT) || nonempty(mp, CP_CERTHASH))
@@ -319,6 +363,8 @@ mapi_param_validate(mapi_params *mp)
 	//    digits, dashes and underscores. It must not start with a dash.
 	//
 	// TODO
+
+
 
 	// compute this here so the getter function can take const mapi_params*
 	long port = mapi_param_long(mp, CP_PORT);
@@ -359,4 +405,59 @@ mapi_param_connect_tcp(const mapi_params *mp)
 	if (!*host || strcmp(host, "localhost.") == 0)
 		return "localhost";
 	return host;
+}
+
+const char*
+mapi_param_connect_tls_verify(const mapi_params *mp)
+{
+	assert(mp->validated);
+	bool tls = mapi_param_bool(mp, CP_TLS);
+	const char *cert = mapi_param_string(mp, CP_CERT);
+	const char *certhash = mapi_param_string(mp, CP_CERTHASH);
+
+	if (!tls)
+		return "";
+	if (*certhash)
+		return "hash";
+	if (*cert)
+		return "cert";
+	return "system";
+}
+
+const char*
+mapi_param_connect_certhash_algo(const mapi_params *mp)
+{
+	return mp->certhash_algo;
+}
+
+const char*
+mapi_param_connect_certhash_digits(const mapi_params *mp)
+{
+	return mp->certhash_digits_buffer;
+}
+
+// also used as a validator, returns < 0 on invalid
+long
+mapi_param_connect_binary(const mapi_params *mp)
+{
+	const char *binary = mapi_param_string(mp, CP_BINARY);
+
+	// must not be empty
+	if (binary[0] == '\0')
+		return -1;
+
+	// may be bool
+	int b = parse_bool(binary);
+	if (b == 0)
+		return 0;
+	if (b == 1)
+		return 65535; // "sufficiently large"
+	assert(b < 0);
+
+	char *end;
+	long level = strtol(binary, &end, 10);
+	if (*end == '\0')
+		return level;
+
+	return -1;
 }

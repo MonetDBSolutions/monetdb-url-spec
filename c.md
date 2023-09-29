@@ -27,11 +27,11 @@ PARSE mapi:monetdb:/
 PARSE mapi:monetdb://
 ```
 
+```no
+PARSE monetdb://[abc]
+```
+
+
 ```test
-PARSE monetdb://localhost:50000/demo?user=monetdb&password=monetdb
-EXPECT port=50000
-EXPECT tls=off
-EXPECT database=demo
-EXPECT user=monetdb
-EXPECT password=monetdb
+REJECT monetdbs://mdb.example.com/demo?certhash=X
 ```

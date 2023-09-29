@@ -324,6 +324,23 @@ Based on the given parameters, the implementation should compute a number of
   3. otherwise, if **cert** is not empty, **connect_tls_verify** is 'cert'.
   4. otherwise, **connect_tls_verify** is 'system'.
 
+* Virtual parameter **connect_certhash_algo** indicates which hash algorithm
+  to use when **connect_tls_verify** is 'hash'.
+
+  1. if **certhash** starts with '{sha1}' (case insensitive),
+     **connect_certhash_algo** is 'sha1'.
+  2. if **certhash** starts with '{sha256}' (case insensitive),
+     **connect_certhash_algo** is 'sha256'.
+  3. otherwise, **connect_certhash_algo** is 'sha1'.
+
+* Virtual parameter **connect_certhash_digits** gives the hexdigits to
+  compare to, with colons stripped.
+
+  1. if **tls** is 'off' or **certhash** is empty, **connect_certhash_algo** is
+     empty.
+  2. otherwise, certhash is the value of **certhash** in lowercase, with the
+     brace prefix and all colons stripped.
+
 * Virtual parameter **connect_binary** (an integer) is the interpretation of the
   string parameter **binary**
 

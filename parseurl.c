@@ -4,6 +4,7 @@
 #include "params.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -216,7 +217,15 @@ parse_modern(mapi_params *mp, scanner *sc)
 
 	// parse the host
 	if (sc->c == '[') {
-		return complain(sc, "IPv6 not supported yet");
+		advance(sc);
+		char *host = sc->p;
+		while (sc->c == ':' || isxdigit(sc->c))
+			advance(sc);
+		*sc->p = '\0';
+		if (!consume(sc, "]"))
+			return false;
+		if (!store(mp, sc, CP_HOST, host))
+			return false;
 	} else {
 		char *host = scan(sc, generic_special);
 		if (sc->c != ':' && sc->c != '/' && sc->c != '\0')

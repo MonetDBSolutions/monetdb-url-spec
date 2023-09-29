@@ -28,7 +28,11 @@ handle_parse_command(const char *location, char *url)
 		return false;
 	}
 
-	// TODO validate!
+	const char *msg = mapi_param_validate(mp);
+	if (msg != NULL) {
+		fprintf(stderr, "%s: URL invalid: %s\n", location, msg);
+		return false;
+	}
 	return true;
 }
 
@@ -36,13 +40,15 @@ static bool
 handle_reject_command(const char *location, char *url)
 {
 	bool ok = mapi_param_parse_url(mp, url, NULL);
-	if (ok) {
-		fprintf(stderr, "%s: expected URL to be rejected.\n", location);
-		return false;
-	}
+	if (!ok)
+		return true;
 
-	// TODO validate!
-	return true;
+	const char *msg = mapi_param_validate(mp);
+	if (msg != NULL)
+		return true;
+
+	fprintf(stderr, "%s: expected URL to be rejected.\n", location);
+	return false;
 }
 
 static bool
@@ -58,9 +64,12 @@ handle_set_command(const char *location, char *key, char *value)
 }
 
 static bool
-is_valid(void) {
+ensure_valid(const char *location) {
 	const char *msg = mapi_param_validate(mp);
-	return msg == NULL;
+	if (msg == NULL)
+		return true;
+	fprintf(stderr, "%s: invalid parameter state: %s\n", location, msg);
+	return false;
 }
 
 static bool
@@ -75,7 +84,7 @@ expect_bool(const char *location, const mapiparm *parm, bool (*extract)(const ma
 	assert(!parm != !extract);
 	bool actual;
 	if (extract) {
-		if (!is_valid())
+		if (!ensure_valid(location))
 			return false;
 		actual = extract(mp);
 	} else {
@@ -109,7 +118,7 @@ expect_long(const char *location, const mapiparm *parm, long (*extract)(const ma
 	assert(!parm != !extract);
 	long actual;
 	if (extract) {
-		if (!is_valid())
+		if (!ensure_valid(location))
 			return false;
 		actual = extract(mp);
 	} else {
@@ -129,7 +138,7 @@ expect_string(const char *location, const mapiparm *parm, const char *(*extract)
 	assert(!parm != !extract);
 	const char *actual;
 	if (extract) {
-		if (!is_valid())
+		if (!ensure_valid(location))
 			return false;
 		actual = extract(mp);
 	} else {
@@ -151,6 +160,14 @@ handle_expect_command(const char *location, char *key, char *value)
 		return expect_string(location, NULL, mapi_param_connect_unix, value);
 	if (strcmp("connect_tcp", key) == 0)
 		return expect_string(location, NULL, mapi_param_connect_tcp, value);
+	if (strcmp("connect_tls_verify", key) == 0)
+		return expect_string(location, NULL, mapi_param_connect_tls_verify, value);
+	if (strcmp("connect_certhash_algo", key) == 0)
+		return expect_string(location, NULL, mapi_param_connect_certhash_algo, value);
+	if (strcmp("connect_certhash_digits", key) == 0)
+		return expect_string(location, NULL, mapi_param_connect_certhash_digits, value);
+	if (strcmp("connect_binary", key) == 0)
+		return expect_long(location, NULL, mapi_param_connect_binary, value);
 
 	const mapiparm *parm = mapiparm_parse(key);
 	if (parm == NULL) {
@@ -186,10 +203,12 @@ handle_line(int lineno, const char *location, char *line)
 			// block starts here
 			start_line = lineno;
 			mp = mapi_params_create();
-			if (mp != NULL)
-				return true;
-			fprintf(stderr, "%s: malloc failed\n", location);
-			return false;
+			if (mp == NULL) {
+				fprintf(stderr, "%s: malloc failed\n", location);
+				return false;
+			}
+			fprintf(stderr, "· %s\n", location);
+			return true;
 		} else {
 			// ignore
 			return true;

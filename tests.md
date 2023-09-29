@@ -142,15 +142,53 @@ EXPECT database=demo
 ```
 
 ```test
-PARSE monetdbs://mdb.example.com/demo?certhash={sha256}fb6720aa009f334c
+PARSE monetdbs://mdb.example.com/demo?certhash={sha256}fb:67:20:aa:00:9f:33:4c
 EXPECT connect_unix=
 EXPECT connect_tcp=mdb.example.com
 EXPECT port=50000
 EXPECT tls=on
 EXPECT connect_tls_verify=hash
-EXPECT certhash={sha256}fb6720aa009f334c
+EXPECT certhash={sha256}fb:67:20:aa:00:9f:33:4c
+EXPECT connect_certhash_algo=sha256
+EXPECT connect_certhash_digits=fb6720aa009f334c
 EXPECT database=demo
 ```
+
+```test
+PARSE monetdbs://mdb.example.com/demo?certhash={sha256}A::B
+EXPECT connect_certhash_algo=sha256
+EXPECT connect_certhash_digits=ab
+```
+
+```test
+PARSE monetdbs://mdb.example.com/demo?certhash={sHA256}A::B
+EXPECT connect_certhash_algo=sha256
+EXPECT connect_certhash_digits=ab
+```
+
+```test
+PARSE monetdbs://mdb.example.com/demo?certhash={sHA1}A::B
+EXPECT connect_certhash_algo=sha1
+EXPECT connect_certhash_digits=ab
+```
+
+```test
+PARSE monetdbs://mdb.example.com/demo?certhash=A::B
+EXPECT connect_certhash_algo=sha1
+EXPECT connect_certhash_digits=ab
+```
+
+```test
+REJECT monetdbs://mdb.example.com/demo?certhash=X
+REJECT monetdbs://mdb.example.com/demo?certhash={sha1}X
+REJECT monetdbs://mdb.example.com/demo?certhash={sha99}X
+REJECT monetdbs://mdb.example.com/demo?certhash={X
+REJECT monetdbs://mdb.example.com/demo?certhash={banana}abcdef
+```
+
+
+case errors
+
 
 ```test
 PARSE monetdb:///demo?sock=/var/monetdb/_sock&user=dbuser
@@ -362,6 +400,7 @@ EXPECT connect_binary=100
 ```
 
 ```test
+REJECT monetdb:///?binary=
 REJECT monetdb:///?binary=-1
 REJECT monetdb:///?binary=1.0
 REJECT monetdb:///?binary=banana
