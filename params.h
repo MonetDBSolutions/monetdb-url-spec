@@ -74,3 +74,11 @@ bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
 
 /* 1 = true, 0 = false, -1 = could not parse */
 int parse_bool(const char *text);
+
+/* return an error message if the validity rules are not satisfied */
+mapi_params_error mapi_param_validate(mapi_params *mp);
+
+
+/* virtual parameters */
+const char *mapi_param_connect_unix(const mapi_params *mp);
+const char *mapi_param_connect_tcp(const mapi_params *mp);

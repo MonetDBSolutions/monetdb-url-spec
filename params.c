@@ -93,6 +93,7 @@ struct mapi_params {
 	bool bool_params[CP__BOOL_END - CP__BOOL_START];
 	long long_params[CP__LONG_END - CP__LONG_START];
 	char *string_parameters[CP__STRING_END - CP__STRING_START];
+	char unix_sock_name_buffer[50];
 	bool validated;
 };
 
@@ -259,4 +260,103 @@ mapi_param_to_text(mapi_params *mp, mapiparm parm)
 	} else {
 		FATAL();
 	}
+}
+
+static bool
+empty(const mapi_params *mp, mapiparm parm)
+{
+	if (parm >= CP__STRING_START && parm < CP__STRING_END) {
+		const char *value = mapi_param_string(mp, parm);
+		assert(value);
+		return *value == '\0';
+	}
+	FATAL();
+}
+
+static bool
+nonempty(const mapi_params *mp, mapiparm parm)
+{
+	return !empty(mp, parm);
+}
+
+mapi_params_error
+mapi_param_validate(mapi_params *mp)
+{
+	if (mp->validated)
+		return NULL;
+
+	// 1. The parameters have the types listed in the table in [Section
+	//    Parameters](#parameters).
+	// (this has already been checked)
+
+	// 2. If **sock** and **host** are both not empty, **host** must be equal
+	//    to `localhost`.
+	if (nonempty(mp, CP_SOCK) && nonempty(mp, CP_HOST))
+		if (strcmp("localhost", mapi_param_string(mp, CP_HOST)) != 0)
+			return "With sock=, host must be 'localhost'";
+
+	// 3. The string parameter **binary** must either parse as a boolean or as a
+	//    non-negative integer.
+	if (strcmp("on", mapi_param_string(mp, CP_BINARY)) != 0)
+		return "validate function incomplete, implement it better!";
+
+	// 4. If **sock** is not empty, **tls** must be 'off'.
+	if (nonempty(mp, CP_SOCK) && mapi_param_bool(mp, CP_TLS))
+		return "TLS cannot be used with Unix domain sockets";
+
+	// 5. If **certhash** is not empty, it must be of the form
+	//    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
+	//    and hexdigits is a non-empty sequence of 0-9, a-f and underscores.
+	if (nonempty(mp, CP_CERTHASH))
+		return "validate function incomplete, implement it better!";
+
+	// 6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
+	if (nonempty(mp, CP_CERT) || nonempty(mp, CP_CERTHASH))
+		if (!mapi_param_bool(mp, CP_TLS))
+			return "'cert' and 'certhash' can only be used with monetdbs:";
+
+	// 7. Parameter **database** must consist only of upper- and lowercase letters,
+	//    digits, dashes and underscores. It must not start with a dash.
+	//
+	// TODO
+
+	// compute this here so the getter function can take const mapi_params*
+	long port = mapi_param_long(mp, CP_PORT);
+	snprintf(mp->unix_sock_name_buffer, sizeof(mp->unix_sock_name_buffer), "/tmp/.s.monetdb.%ld", port);
+
+	mp->validated = true;
+	return NULL;
+}
+
+const char *
+mapi_param_connect_unix(const mapi_params *mp)
+{
+	assert(mp->validated);
+	const char *sock = mapi_param_string(mp, CP_SOCK);
+	const char *host = mapi_param_string(mp, CP_HOST);
+	bool tls = mapi_param_bool(mp, CP_TLS);
+
+	if (*sock)
+		return sock;
+	if (tls)
+		return "";
+	if (*host == '\0' || strcmp(host, "localhost") == 0)
+		return mp->unix_sock_name_buffer;
+	return "";
+}
+
+
+const char *
+mapi_param_connect_tcp(const mapi_params *mp)
+{
+	assert(mp->validated);
+	const char *sock = mapi_param_string(mp, CP_SOCK);
+	const char *host = mapi_param_string(mp, CP_HOST);
+	// bool tls = mapi_param_bool(mp, CP_TLS);
+
+	if (*sock)
+		return "";
+	if (!*host || strcmp(host, "localhost.") == 0)
+		return "localhost";
+	return host;
 }

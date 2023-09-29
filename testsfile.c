@@ -58,7 +58,13 @@ handle_set_command(const char *location, char *key, char *value)
 }
 
 static bool
-expect_bool(const char *location, mapiparm parm, const char *value)
+is_valid(void) {
+	const char *msg = mapi_param_validate(mp);
+	return msg == NULL;
+}
+
+static bool
+expect_bool(const char *location, const mapiparm *parm, bool (*extract)(const mapi_params*), const char *value)
 {
 	int x = parse_bool(value);
 	if (x < 0) {
@@ -66,20 +72,28 @@ expect_bool(const char *location, mapiparm parm, const char *value)
 	}
 	bool b = x > 0;
 
-	bool actual = mapi_param_bool(mp, parm);
+	assert(!parm != !extract);
+	bool actual;
+	if (extract) {
+		if (!is_valid())
+			return false;
+		actual = extract(mp);
+	} else {
+		actual = mapi_param_bool(mp, *parm);
+	}
+
 	if (actual == b)
 		return true;
 
-	const char *name = mapiparm_name(parm);
 	char *b_ = b ? "true" : "false";
 	char *actual_ = actual ? "true" : "false";
-	fprintf(stderr, "%s: expected %s=%s, found %s\n", location, name, b_, actual_);
+	fprintf(stderr, "%s: expected %s, found %s\n", location, b_, actual_);
 	return false;
 
 }
 
 static bool
-expect_long(const char *location, mapiparm parm, const char *value)
+expect_long(const char *location, const mapiparm *parm, long (*extract)(const mapi_params*), const char *value)
 {
 	if (strlen(value) == 0) {
 		fprintf(stderr, "%s: syntax error: integer value cannot be empty string\n", location);
@@ -92,24 +106,40 @@ expect_long(const char *location, mapiparm parm, const char *value)
 		return false;
 	}
 
-	long actual = mapi_param_long(mp, parm);
+	assert(!parm != !extract);
+	long actual;
+	if (extract) {
+		if (!is_valid())
+			return false;
+		actual = extract(mp);
+	} else {
+		actual = mapi_param_long(mp, *parm);
+	}
+
 	if (actual == n)
 		return true;
 
-	const char *name = mapiparm_name(parm);
-	fprintf(stderr, "%s: expected %s=%ld, found %ld\n", location, name, n, actual);
+	fprintf(stderr, "%s: expected %ld, found %ld\n", location, n, actual);
 	return false;
 }
 
 static bool
-expect_string(const char *location, mapiparm parm, const char *value)
+expect_string(const char *location, const mapiparm *parm, const char *(*extract)(const mapi_params*), const char *value)
 {
-	const char *actual = mapi_param_string(mp, parm);
+	assert(!parm != !extract);
+	const char *actual;
+	if (extract) {
+		if (!is_valid())
+			return false;
+		actual = extract(mp);
+	} else {
+		actual = mapi_param_string(mp, *parm);
+	}
+
 	if (strcmp(actual, value) == 0)
 		return true;
 
-	const char *name = mapiparm_name(parm);
-	fprintf(stderr, "%s: expected %s='%s', found '%s'\n", location, name, value, actual);
+	fprintf(stderr, "%s: expected '%s', found '%s'\n", location, value, actual);
 	return false;
 }
 
@@ -117,6 +147,11 @@ expect_string(const char *location, mapiparm parm, const char *value)
 static bool
 handle_expect_command(const char *location, char *key, char *value)
 {
+	if (strcmp("connect_unix", key) == 0)
+		return expect_string(location, NULL, mapi_param_connect_unix, value);
+	if (strcmp("connect_tcp", key) == 0)
+		return expect_string(location, NULL, mapi_param_connect_tcp, value);
+
 	const mapiparm *parm = mapiparm_parse(key);
 	if (parm == NULL) {
 		fprintf(stderr, "%s: unknown parameter '%s'\n:", location, key);
@@ -124,11 +159,11 @@ handle_expect_command(const char *location, char *key, char *value)
 	}
 
 	if (*parm >= CP__BOOL_START && *parm < CP__BOOL_END)
-		return expect_bool(location, *parm, value);
+		return expect_bool(location, parm, NULL, value);
 	if (*parm >= CP__LONG_START && *parm < CP__LONG_END)
-		return expect_long(location, *parm, value);
+		return expect_long(location, parm, NULL, value);
 	if (*parm >= CP__STRING_START && *parm < CP__STRING_END)
-		return expect_string(location, *parm, value);
+		return expect_string(location, parm, NULL, value);
 	fprintf(stderr, "%s: internal error\n", location);
 	return false;
 }

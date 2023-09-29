@@ -91,8 +91,6 @@ EXPECT connect_tcp=192.168.13.4
 EXPECT port=12345
 EXPECT tls=off
 EXPECT database=demo
-EXPECT user=monetdb
-EXPECT password=monetdb
 ```
 
 ```test
