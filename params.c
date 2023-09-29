@@ -51,17 +51,22 @@ by_name[] = {
 	{ .name="timezone", .parm=CP_TIMEZONE },
 	{ .name="tls", .parm=CP_TLS },
 	{ .name="user", .parm=CP_USER },
+	//
+	{ .name="hash", .parm=CP_IGNORE },
+	{ .name="debug", .parm=CP_IGNORE },
+	{ .name="logfile", .parm=CP_IGNORE },
 };
 
-const mapiparm *
+const mapiparm
 mapiparm_parse(const char *name)
 {
 	int n = sizeof(by_name) / sizeof(by_name[0]);
-	// could use a binary search but this is not going to be a bottle neck
+	// could use a binary search but this is not going to be a bottleneck
 	for (int i = 0; i < n; i++)
 		if (strcmp(by_name[i].name, name) == 0)
-			return &by_name[i].parm;
-	return NULL;
+			return by_name[i].parm;
+
+	return strchr(name, '_') ? CP_IGNORE : CP_UNKNOWN;
 }
 
 const char *
@@ -89,20 +94,6 @@ mapiparm_name(mapiparm parm)
 		case CP_USER: return "user";
 		default: FATAL();
 	}
-}
-
-bool
-mapiparm_is_ignored(const char *name)
-{
-	if (strcmp(name, "hash") == 0)
-		return true;
-	if (strcmp(name, "debug") == 0)
-		return true;
-	if (strcmp(name, "logfile") == 0)
-		return true;
-	if (strchr(name, '_') != NULL)
-		return true;
-	return false;
 }
 
 bool

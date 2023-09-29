@@ -54,18 +54,19 @@ handle_reject_command(const char *location, char *url)
 static bool
 handle_set_command(const char *location, char *key, char *value)
 {
-	const mapiparm *parm = mapiparm_parse(key);
-	if (parm != NULL) {
-		mapi_params_error msg = mapi_param_from_text(mp, *parm, value);
-		return msg == NULL;
+	mapiparm parm = mapiparm_parse(key);
+	if (parm == CP_UNKNOWN) {
+		fprintf(stderr, "%s: unknown parameter '%s'\n", location, key);
+		return false;
 	}
 
-	if (mapiparm_is_ignored(key)) {
+	if (parm == CP_IGNORE) {
 		mapi_params_error msg = mapi_param_set_ignored(mp, key, value);
 		return msg == NULL;
 	}
-	fprintf(stderr, "%s: unknown parameter '%s'\n", location, key);
-	return false;
+
+	mapi_params_error msg = mapi_param_from_text(mp, parm, value);
+	return msg == NULL;
 }
 
 static bool
@@ -78,7 +79,7 @@ ensure_valid(const char *location) {
 }
 
 static bool
-expect_bool(const char *location, const mapiparm *parm, bool (*extract)(const mapi_params*), const char *value)
+expect_bool(const char *location, const mapiparm parm, bool (*extract)(const mapi_params*), const char *value)
 {
 	int x = parse_bool(value);
 	if (x < 0) {
@@ -86,14 +87,13 @@ expect_bool(const char *location, const mapiparm *parm, bool (*extract)(const ma
 	}
 	bool b = x > 0;
 
-	assert(!parm != !extract);
 	bool actual;
 	if (extract) {
 		if (!ensure_valid(location))
 			return false;
 		actual = extract(mp);
 	} else {
-		actual = mapi_param_bool(mp, *parm);
+		actual = mapi_param_bool(mp, parm);
 	}
 
 	if (actual == b)
@@ -107,7 +107,7 @@ expect_bool(const char *location, const mapiparm *parm, bool (*extract)(const ma
 }
 
 static bool
-expect_long(const char *location, const mapiparm *parm, long (*extract)(const mapi_params*), const char *value)
+expect_long(const char *location, const mapiparm parm, long (*extract)(const mapi_params*), const char *value)
 {
 	if (strlen(value) == 0) {
 		fprintf(stderr, "%s: syntax error: integer value cannot be empty string\n", location);
@@ -120,14 +120,13 @@ expect_long(const char *location, const mapiparm *parm, long (*extract)(const ma
 		return false;
 	}
 
-	assert(!parm != !extract);
 	long actual;
 	if (extract) {
 		if (!ensure_valid(location))
 			return false;
 		actual = extract(mp);
 	} else {
-		actual = mapi_param_long(mp, *parm);
+		actual = mapi_param_long(mp, parm);
 	}
 
 	if (actual == n)
@@ -138,16 +137,15 @@ expect_long(const char *location, const mapiparm *parm, long (*extract)(const ma
 }
 
 static bool
-expect_string(const char *location, const mapiparm *parm, const char *(*extract)(const mapi_params*), const char *value)
+expect_string(const char *location, const mapiparm parm, const char *(*extract)(const mapi_params*), const char *value)
 {
-	assert(!parm != !extract);
 	const char *actual;
 	if (extract) {
 		if (!ensure_valid(location))
 			return false;
 		actual = extract(mp);
 	} else {
-		actual = mapi_param_string(mp, *parm);
+		actual = mapi_param_string(mp, parm);
 	}
 
 	if (strcmp(actual, value) == 0)
@@ -182,29 +180,33 @@ handle_expect_command(const char *location, char *key, char *value)
 	}
 
 	if (strcmp("connect_unix", key) == 0)
-		return expect_string(location, NULL, mapi_param_connect_unix, value);
+		return expect_string(location, CP_UNKNOWN, mapi_param_connect_unix, value);
 	if (strcmp("connect_tcp", key) == 0)
-		return expect_string(location, NULL, mapi_param_connect_tcp, value);
+		return expect_string(location, CP_UNKNOWN, mapi_param_connect_tcp, value);
 	if (strcmp("connect_tls_verify", key) == 0)
-		return expect_string(location, NULL, mapi_param_connect_tls_verify, value);
+		return expect_string(location, CP_UNKNOWN, mapi_param_connect_tls_verify, value);
 	if (strcmp("connect_certhash_algo", key) == 0)
-		return expect_string(location, NULL, mapi_param_connect_certhash_algo, value);
+		return expect_string(location, CP_UNKNOWN, mapi_param_connect_certhash_algo, value);
 	if (strcmp("connect_certhash_digits", key) == 0)
-		return expect_string(location, NULL, mapi_param_connect_certhash_digits, value);
+		return expect_string(location, CP_UNKNOWN, mapi_param_connect_certhash_digits, value);
 	if (strcmp("connect_binary", key) == 0)
-		return expect_long(location, NULL, mapi_param_connect_binary, value);
+		return expect_long(location, CP_UNKNOWN, mapi_param_connect_binary, value);
 
-	const mapiparm *parm = mapiparm_parse(key);
-	if (parm == NULL) {
+	const mapiparm parm = mapiparm_parse(key);
+	if (parm == CP_UNKNOWN) {
 		fprintf(stderr, "%s: unknown parameter '%s'\n:", location, key);
 		return false;
 	}
+	if (parm == CP_IGNORE) {
+		fprintf(stderr, "%s: EXPECTing ignored parameters is not supported yet\n", location);
+		return false;
+	}
 
-	if (*parm >= CP__BOOL_START && *parm < CP__BOOL_END)
+	if (parm >= CP__BOOL_START && parm < CP__BOOL_END)
 		return expect_bool(location, parm, NULL, value);
-	if (*parm >= CP__LONG_START && *parm < CP__LONG_END)
+	if (parm >= CP__LONG_START && parm < CP__LONG_END)
 		return expect_long(location, parm, NULL, value);
-	if (*parm >= CP__STRING_START && *parm < CP__STRING_END)
+	if (parm >= CP__STRING_START && parm < CP__STRING_END)
 		return expect_string(location, parm, NULL, value);
 	fprintf(stderr, "%s: internal error\n", location);
 	return false;

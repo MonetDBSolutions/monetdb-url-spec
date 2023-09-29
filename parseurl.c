@@ -294,18 +294,19 @@ parse_modern(mapi_params *mp, scanner *sc)
 			char *value = scan(sc, very_special);
 			if (!percent_decode(sc, key, value))
 				return false;
-			const mapiparm *parm = mapiparm_parse(key);
-			if (parm != NULL) {
-				if (mapiparm_is_core(*parm))
-					return complain(sc, "key '%s' not allowed in URL parameters", key);
-				if (!store(mp, sc, *parm, value))
-					return false;
-			} else if (mapiparm_is_ignored(key)) {
+			const mapiparm parm = mapiparm_parse(key);
+			if (parm == CP_UNKNOWN) {
+				return complain(sc, "unknown parameter '%s'", key);
+			} else if (parm == CP_IGNORE) {
 				mapi_params_error msg = mapi_param_set_ignored(mp, key, value);
 				if (msg != NULL)
 					return complain(sc, "cannot set '%s' to '%s': %s", key, value, msg);
-			} else
-				return complain(sc, "unknown parameter '%s'", key);
+			} else if (mapiparm_is_core(parm)) {
+					return complain(sc, "key '%s' not allowed in URL parameters", key);
+			} else {
+				if (!store(mp, sc, parm, value))
+					return false;
+			}
 		} while (sc->c == '&');
 	}
 

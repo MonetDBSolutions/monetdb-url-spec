@@ -2,6 +2,8 @@
 
 
 typedef enum mapiparm {
+		CP_UNKNOWN,
+		CP_IGNORE,
 
         // bool
         CP_TLS,
@@ -39,10 +41,8 @@ typedef enum mapiparm {
 
 
 /* returns NULL if not found, pointer to mapiparm if found */
-const mapiparm *mapiparm_parse(const char *name);
+const mapiparm mapiparm_parse(const char *name);
 const char *mapiparm_name(mapiparm parm);
-
-bool mapiparm_is_ignored(const char *name);
 bool mapiparm_is_core(mapiparm parm);
 
 typedef struct mapi_params mapi_params;
