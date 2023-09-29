@@ -200,7 +200,7 @@ scan(scanner *sc, enum character_class level)
 static bool
 store(mapi_params *mp, scanner *sc, mapiparm parm, const char *value)
 {
-	const char *msg = mapi_param_from_text(mp, parm, value);
+	mapi_params_error msg = mapi_param_from_text(mp, parm, value);
 	if (msg)
 		return complain(sc, "cannot set %s to '%s': %s",mapiparm_name(parm), value, msg);
 	else
@@ -268,14 +268,19 @@ parse_modern(mapi_params *mp, scanner *sc)
 				return false;
 			if (!consume(sc, "="))
 				return false;
-			const mapiparm *parm = mapiparm_parse(key);
-			if (parm == NULL)
-				return complain(sc, "unknown parameter '%s'", key);
 			char *value = scan(sc, very_special);
 			if (!percent_decode(sc, key, value))
 				return false;
-			if (!store(mp, sc, *parm, value))
-				return false;
+			const mapiparm *parm = mapiparm_parse(key);
+			if (parm != NULL) {
+				if (!store(mp, sc, *parm, value))
+					return false;
+			} else if (mapiparm_is_ignored(key)) {
+				mapi_params_error msg = mapi_param_set_ignored(mp, key, value);
+				if (msg != NULL)
+					return complain(sc, "cannot set '%s' to '%s': %s", key, value, msg);
+			} else
+				return complain(sc, "unknown parameter '%s'", key);
 		} while (sc->c == '&');
 	}
 

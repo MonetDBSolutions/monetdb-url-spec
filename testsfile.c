@@ -55,12 +55,17 @@ static bool
 handle_set_command(const char *location, char *key, char *value)
 {
 	const mapiparm *parm = mapiparm_parse(key);
-	if (parm == NULL) {
-		fprintf(stderr, "%s: unknown parameter '%s'\n", location, key);
-		return false;
+	if (parm != NULL) {
+		mapi_params_error msg = mapi_param_from_text(mp, *parm, value);
+		return msg == NULL;
 	}
-	bool ok = mapi_param_from_text(mp, *parm, value);
-	return ok;
+
+	if (mapiparm_is_ignored(key)) {
+		mapi_params_error msg = mapi_param_set_ignored(mp, key, value);
+		return msg == NULL;
+	}
+	fprintf(stderr, "%s: unknown parameter '%s'\n", location, key);
+	return false;
 }
 
 static bool

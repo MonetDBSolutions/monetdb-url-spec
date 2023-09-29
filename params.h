@@ -41,7 +41,7 @@ typedef enum mapiparm {
 /* returns NULL if not found, pointer to mapiparm if found */
 const mapiparm *mapiparm_parse(const char *name);
 const char *mapiparm_name(mapiparm parm);
-
+bool mapiparm_is_ignored(const char *name);
 
 typedef struct mapi_params mapi_params;
 
@@ -66,6 +66,10 @@ mapi_params_error mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value
 /* parse into the appropriate type, or format into newly malloc'ed string (NULL means malloc failed) */
 mapi_params_error mapi_param_from_text(mapi_params *mp, mapiparm parm, const char *text);
 char *mapi_param_to_text(mapi_params *mp, mapiparm parm);
+
+/* store ignored parameter */
+mapi_params_error mapi_param_set_ignored(mapi_params *mp, const char *key, const char *value);
+
 
 /* update the mapi_params from the URL. set *error_buffer to NULL and return true
  * if success, set *error_buffer to malloc'ed error message and return false on failure.

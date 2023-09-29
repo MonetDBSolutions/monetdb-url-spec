@@ -411,6 +411,19 @@ REJECT monetdb:///?binary=banana
 ```test
 REJECT monetdb:///?banana=bla
 PARSE monetdb:///?ban_ana=bla
+PARSE monetdb:///?hash=sha1
+PARSE monetdb:///?debug=true
+PARSE monetdb:///?logfile=banana
+```
+
+Unfortunately we can't easily test that it won't allow us
+to SET banana.
+
+```test
+SET ban_ana=bla
+SET hash=sha1
+SET debug=true
+SET logfile=banana
 ```
 
 ## Combining sources

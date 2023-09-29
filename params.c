@@ -91,10 +91,26 @@ mapiparm_name(mapiparm parm)
 	}
 }
 
+bool
+mapiparm_is_ignored(const char *name)
+{
+	if (strcmp(name, "hash") == 0)
+		return true;
+	if (strcmp(name, "debug") == 0)
+		return true;
+	if (strcmp(name, "logfile") == 0)
+		return true;
+	if (strchr(name, '_') != NULL)
+		return true;
+	return false;
+}
+
 struct mapi_params {
 	bool bool_params[CP__BOOL_END - CP__BOOL_START];
 	long long_params[CP__LONG_END - CP__LONG_START];
 	char *string_parameters[CP__STRING_END - CP__STRING_START];
+	char **unknown_parameters;
+	size_t nr_unknown;
 	char unix_sock_name_buffer[50];
 	const char *certhash_algo;
 	char certhash_digits_buffer[33];
@@ -135,6 +151,8 @@ mapi_params *mapi_params_create(void)
 			[CP_SCHEMA - CP__STRING_START] = NULL,
 			[CP_BINARY - CP__STRING_START] = binary_on,
 		},
+		.unknown_parameters = NULL,
+		.nr_unknown = 0,
 		.validated = false,
 	};
 	return mp;
@@ -145,6 +163,11 @@ mapi_params_destroy(mapi_params *mp)
 {
 	for (int i = 0; i < sizeof(mp->string_parameters) / sizeof(mp->string_parameters[0]); i++)
 		free(mp->string_parameters[i]);
+	for (int i = 0; i < mp->nr_unknown; i++) {
+		free(mp->unknown_parameters[2 * i]);
+		free(mp->unknown_parameters[2 * i + 1]);
+	}
+	free(mp->unknown_parameters);
 	free(mp);
 }
 
@@ -265,6 +288,32 @@ mapi_param_to_text(mapi_params *mp, mapiparm parm)
 		FATAL();
 	}
 }
+
+mapi_params_error
+mapi_param_set_ignored(mapi_params *mp, const char *key, const char *value)
+{
+	char *my_key = strdup(key);
+	char *my_value = strdup(value);
+
+	size_t n = mp->nr_unknown;
+	size_t new_size = (2 * n + 2) * sizeof(char*);
+	char **new_unknowns = realloc(mp->unknown_parameters, new_size);
+
+	if (!my_key || !my_value || !new_unknowns) {
+		free(my_key);
+		free(my_value);
+		free(new_unknowns);
+		return "malloc failed while setting ignored parameter";
+	}
+
+	new_unknowns[2 * n] = my_key;
+	new_unknowns[2 * n + 1] = my_value;
+	mp->unknown_parameters = new_unknowns;
+	mp->nr_unknown += 1;
+
+	return NULL;
+}
+
 
 static bool
 empty(const mapi_params *mp, mapiparm parm)
