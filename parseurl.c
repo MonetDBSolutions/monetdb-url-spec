@@ -113,9 +113,9 @@ percent_decode_digit(char c)
 	if (c >= '0' && c <= '9')
 		return c - '0';
 	if (c >= 'A' && c <= 'F')
-		return c - 'A';
+		return c - 'A' + 10;
 	if (c >= 'a' && c <= 'f')
-		return c - 'a';
+		return c - 'a' + 10;
 	// return something so negative that it will still
 	// be negative after we combine it with another digit
 	return -1000;
