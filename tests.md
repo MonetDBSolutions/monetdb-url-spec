@@ -23,6 +23,12 @@ keywords:
 * `EXPECT key=value`: verify that the given parameter now has the given
   value. Fail the test case if the value is different.
 
+* `ONLY pymonetdb`: only process the rest of the block when testing
+  pymonetdb, ignore it for other implementations.
+
+* `NOT pymonetdb`: ignore the rest of the block when testing pymonetdb,
+  do process it for other implementations.
+
 At the start of each block the parameters are reset to their default values.
 
 The EXPECT clause can verify all parameters listen in the Parameters section of
@@ -31,7 +37,7 @@ boolean indicating whether all validity rules in section 'Interpreting the
 parameters' hold.
 
 Note: an `EXPECT` of the virtual parameters implies `EXPECT valid=true`,
-as do `PARSE` and `REJECT`. In the case of `PARSE`, `valid` must be true.
+as do `ACCEPT` and `REJECT`. In the case of `ACCEPT`, `valid` must be true.
 In the case of `REJECT`, if the URL is syntactically correct but `valid` is false,
 this is considered a succesful rejection of the URL.
 
@@ -826,7 +832,6 @@ SET table=with?questionmark
 EXPECT valid=no
 ```
 
-
 # Legacy URL's
 
 ```test
@@ -836,11 +841,14 @@ REJECT mapi:monetdb:
 REJECT mapi:monetdb:/
 ```
 
-```testNONONONONONONO
+This one is refused by mclient but accepted by pymonetdb:
+
+```test
 ACCEPT mapi:monetdb://
+EXPECT host=
+EXPECT port=50000
 EXPECT connect_unix=/tmp/.s.monetdb.50000
 EXPECT connect_tcp=localhost
-EXPECT port=50000
 ```
 
 ```test
@@ -850,51 +858,234 @@ EXPECT port=12345
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
+EXPECT connect_unix=
+EXPECT connect_tcp=monet.db
 ```
+
+This one is the golden standard:
 
 ```test
 ACCEPT mapi:monetdb://localhost:12345/demo
-
-```
-
-```test
-ACCEPT mapi:monetdb://monet.db:12345/demo?language=mal
-EXPECT host=monet.db
+EXPECT host=localhost.
 EXPECT port=12345
 EXPECT database=demo
 EXPECT tls=off
-EXPECT language=mal
+EXPECT language=sql
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
 ```
 
 ```test
-ACCEPT mapi:monetdb://monet.db/demo
-EXPECT host=monet.db
+ACCEPT mapi:monetdb://localhost:12345/
+EXPECT host=localhost.
+EXPECT port=12345
+EXPECT database=
+EXPECT tls=off
+EXPECT language=sql
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+ACCEPT mapi:monetdb://localhost:12345
+EXPECT host=localhost.
+EXPECT port=12345
+EXPECT database=
+EXPECT tls=off
+EXPECT language=sql
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+ACCEPT mapi:monetdb://localhost/demo
+EXPECT host=localhost.
 EXPECT port=50000
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
-```
-Unix domain:
-
-
-```test
-ACCEPT mapi:monetdb:///path/to/socket
-EXPECT host=
-EXPECT sock=/path/to/socket
-EXPECT database=
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
 ```
 
 ```test
-ACCEPT mapi:monetdb:///path/to/socket?database=demo
+ACCEPT mapi:monetdb://:12345/demo
 EXPECT host=
-EXPECT sock=/path/to/socket
+EXPECT port=12345
 EXPECT database=demo
+EXPECT tls=off
+EXPECT language=sql
+EXPECT connect_unix=/tmp/.s.monetdb.12345
+EXPECT connect_tcp=localhost
 ```
 
-Corner case: easy mistake to set sock to empty:
+```test
+ACCEPT mapi:monetdb://127.0.0.1:12345/demo
+EXPECT host=127.0.0.1
+EXPECT port=12345
+EXPECT database=demo
+EXPECT tls=off
+EXPECT language=sql
+EXPECT connect_unix=
+EXPECT connect_tcp=127.0.0.1
+```
+
+Database parameter allowed, overrides path
+
+```test
+ACCEPT mapi:monetdb://localhost:12345/demo?database=foo
+EXPECT database=foo
+```
+
+User, username and password parameters are ignored:
+
+```test
+SET user=alan
+SET password=turing
+ACCEPT mapi:monetdb://localhost:12345/demo?user=foo
+EXPECT user=alan
+EXPECT password=turing
+ACCEPT mapi:monetdb://localhost:12345/demo?username=foo
+EXPECT user=alan
+EXPECT password=turing
+ACCEPT mapi:monetdb://localhost:12345/demo?password=foo
+EXPECT user=alan
+EXPECT password=turing
+```
+
+```test
+NOT pymonetdb
+SET user=alan
+SET password=turing
+ACCEPT mapi:monetdb://foo:bar@localhost:12345/demo
+EXPECT host=foo:bar@localhost
+EXPECT user=alan
+EXPECT password=turing
+ACCEPT mapi:monetdb://banana@localhost:12345/demo
+EXPECT host=banana@localhost
+EXPECT user=alan
+EXPECT password=turing
+```
+
+```test
+ONLY pymonetdb
+SET user=alan
+SET password=turing
+ACCEPT mapi:monetdb://foo:bar@localhost:12345/demo
+EXPECT user=foo
+EXPECT password=bar
+ACCEPT mapi:monetdb://banana@localhost:12345/demo
+EXPECT user=banana
+EXPECT password=
+```
+
+Unix domain sockets
+
+```test
+ACCEPT mapi:monetdb:///path/to/sock?database=demo
+EXPECT host=
+EXPECT sock=/path/to/sock
+EXPECT port=50000
+EXPECT database=demo
+EXPECT tls=off
+EXPECT language=sql
+EXPECT connect_unix=/path/to/sock
+EXPECT connect_tcp=
+```
+
+```test
+ACCEPT mapi:monetdb:///path/to/sock
+EXPECT host=
+EXPECT sock=/path/to/sock
+EXPECT port=50000
+EXPECT database=
+EXPECT tls=off
+EXPECT language=sql
+EXPECT connect_unix=/path/to/sock
+EXPECT connect_tcp=
+```
+
+Corner case: both libmapi and pymonetdb interpret this as an attempt
+to connect to socket '/'.  This will fail of course but the URL does parse
 
 ```test
 ACCEPT mapi:monetdb:///
 EXPECT host=
 EXPECT sock=/
+EXPECT connect_unix=/
+EXPECT connect_tcp=
 ```
+
+```test
+REJECT mapi:monetdb:///foo:bar@path/to/sock
+NOT pymonetdb
+REJECT mapi:monetdb://foo:bar@/path/to/sock
+```
+
+```test
+ONLY pymonetdb
+SET user=alan
+SET password=turing
+ACCEPT mapi:monetdb://foo:bar@/path/to/sock
+EXPECT host=
+EXPECT sock=/path/to/sock
+EXPECT user=foo
+EXPECT password=bar
+EXPECT connect_unix=/path/to/sock
+EXPECT connect_tcp=
+```
+
+```test
+ONLY pymonetdb
+SET user=alan
+SET password=turing
+ACCEPT mapi:monetdb://foo@/path/to/sock
+EXPECT host=
+EXPECT sock=/path/to/sock
+EXPECT user=foo
+EXPECT password=
+EXPECT connect_unix=/path/to/sock
+EXPECT connect_tcp=
+```
+
+Language is supported
+
+```test
+SET language=sql
+ACCEPT mapi:monetdb://localhost:12345?language=mal
+EXPECT host=localhost.
+EXPECT sock=
+EXPECT language=mal
+SET language=sql
+ACCEPT mapi:monetdb:///path/to/sock?language=mal
+EXPECT host=localhost.
+EXPECT sock=
+EXPECT language=mal
+```
+
+No percent decoding is performed
+
+```test
+REJECT mapi:monetdb://localhost:1234%35/demo
+PARSE mapi:monetdb://loc%61lhost:12345/d%61tabase
+EXPECT host=loc%61lhost
+EXPECT database=d%61tabase
+EXPECT valid=no
+```
+
+```test
+PARSE mapi:monetdb://localhost:12345/db?database=b%61r?language=m%61l
+EXPECT database=b%61r
+EXPECT language=m%61l
+EXPECT valid=no
+```
+
+l%61nguage is an unknown parameter, thus ignored not rejected
+
+```test
+SET language=sql
+ACCEPT mapi:monetdb://localhost:12345/db?l%61nguage=mal
+EXPECT language=sql
+ACCEPT mapi:monetdb://localhost:12345/db?_l%61nguage=mal
+```
+
