@@ -15,9 +15,22 @@
 static int start_line = -1;
 static mapi_params *mp = NULL;
 
-
 static bool
 handle_parse_command(const char *location, char *url)
+{
+	char *errmsg = NULL;
+	bool ok = mapi_param_parse_url(mp, url, &errmsg);
+	if (!ok) {
+		assert(errmsg);
+		fprintf(stderr, "%s: %s\n", location, errmsg);
+		free(errmsg);
+		return false;
+	}
+	return true;
+}
+
+static bool
+handle_accept_command(const char *location, char *url)
 {
 	char *errmsg = NULL;
 	bool ok = mapi_param_parse_url(mp, url, &errmsg);
@@ -258,6 +271,10 @@ handle_line(int lineno, const char *location, char *line)
 		char *url = strtok(NULL, "\n");
 		if (url)
 			return handle_parse_command(location, url);
+	} else if (strcasecmp(command, "ACCEPT") == 0) {
+		char *url = strtok(NULL, "\n");
+		if (url)
+			return handle_accept_command(location, url);
 	} else if (strcasecmp(command, "REJECT") == 0) {
 		char *url = strtok(NULL, "\n");
 		if (url)
