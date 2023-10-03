@@ -345,13 +345,14 @@ parse_modern(mapi_params *mp, scanner *sc)
 static bool
 parse_classic_tcp(mapi_params *mp, scanner *sc)
 {
+	assert(sc->c != '/');
+
 	// parse the host
-	char *host = scan(sc, generic_special);
-	if (sc->c == ':' && strlen(host) == 0) {
-		// cannot port number without host, so this is not allowed: monetdb://:50000
-		return unexpected(sc);
+	char *host = find(sc, ":?/");
+	// in mapi:monetdb:// urls, localhost means a tcp connection.
+	if (strcmp(host, "localhost") == 0) {
+		host = "localhost.";
 	}
-	// no percent decoding
 	if (!store(mp, sc, CP_HOST, host))
 		return false;
 

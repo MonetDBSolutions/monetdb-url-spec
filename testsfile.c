@@ -267,6 +267,28 @@ handle_line(int lineno, const char *location, char *line)
 	if (command == NULL) {
 		// empty line
 		return true;
+	} else if (strcasecmp(command, "ONLY") == 0) {
+		char *impl = strtok(NULL, " \n");
+		if (impl) {
+			if (strcmp(impl, "libmapi") != 0) {
+				// ONLY command is not about us. End the block here
+				mapi_params_destroy(mp);
+				mp = NULL;
+			}
+			return true;
+		}
+		// if !impl we print an error below
+	} else if (strcasecmp(command, "NOT") == 0) {
+		char *impl = strtok(NULL, " \n");
+		if (impl) {
+			if (strcmp(impl, "libmapi") == 0) {
+				// NOT command is about us. End the block here.
+				mapi_params_destroy(mp);
+				mp = NULL;
+			}
+			return true;
+		}
+		// if !impl we print an error below
 	} else if (strcasecmp(command, "PARSE") == 0) {
 		char *url = strtok(NULL, "\n");
 		if (url)

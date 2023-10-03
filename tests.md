@@ -953,19 +953,9 @@ EXPECT user=alan
 EXPECT password=turing
 ```
 
-```test
-NOT pymonetdb
-SET user=alan
-SET password=turing
-ACCEPT mapi:monetdb://foo:bar@localhost:12345/demo
-EXPECT host=foo:bar@localhost
-EXPECT user=alan
-EXPECT password=turing
-ACCEPT mapi:monetdb://banana@localhost:12345/demo
-EXPECT host=banana@localhost
-EXPECT user=alan
-EXPECT password=turing
-```
+Pymonetdb used to accept user name and password before
+the host name and should continue to do so.
+
 
 ```test
 ONLY pymonetdb
@@ -977,6 +967,31 @@ EXPECT password=bar
 ACCEPT mapi:monetdb://banana@localhost:12345/demo
 EXPECT user=banana
 EXPECT password=
+```
+
+Libmapi never accepted user name and password before
+the host name, it accepted the @ as part of the host name
+and got confused about the colon. Let's preserve this
+behaviour.
+
+```test
+ONLY libmapi
+SET user=alan
+SET password=turing
+REJECT mapi:monetdb://foo:bar@localhost:12345/demo
+ACCEPT mapi:monetdb://banana@localhost:12345/demo
+EXPECT host=banana@localhost
+EXPECT user=alan
+EXPECT password=turing
+```
+
+Any new implementations should reject both.
+
+```test
+NOT pymonetdb
+NOT libmapi
+REJECT mapi:monetdb://foo:bar@localhost:12345/demo
+REJECTmapi:monetdb://banana@localhost:12345/demo
 ```
 
 Unix domain sockets
