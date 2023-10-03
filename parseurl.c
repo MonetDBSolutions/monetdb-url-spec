@@ -239,14 +239,14 @@ scan_query_parameters(scanner *sc, char **key, char **value)
 }
 
 static bool
-parse_path(mapi_params *mp, scanner *sc)
+parse_path(mapi_params *mp, scanner *sc, bool percent)
 {
 	// parse the database name
 	if (sc->c != '/')
 		return true;
 	advance(sc);
 	char *database = scan(sc, generic_special);
-	if (!percent_decode(sc, "database", database))
+	if (percent && !percent_decode(sc, "database", database))
 		return false;
 	if (!store(mp, sc, CP_DATABASE, database))
 		return false;
@@ -256,7 +256,7 @@ parse_path(mapi_params *mp, scanner *sc)
 		return true;
 	advance(sc);
 	char *schema = scan(sc, generic_special);
-	if (!percent_decode(sc, "schema", schema))
+	if (percent && !percent_decode(sc, "schema", schema))
 		return false;
 	if (!store(mp, sc, CP_TABLESCHEMA, schema))
 		return false;
@@ -266,7 +266,7 @@ parse_path(mapi_params *mp, scanner *sc)
 		return true;
 	advance(sc);
 	char *table = scan(sc, generic_special);
-	if (!percent_decode(sc, "table", table))
+	if (percent && !percent_decode(sc, "table", table))
 		return false;
 	if (!store(mp, sc, CP_TABLE, table))
 		return false;
@@ -311,7 +311,7 @@ parse_modern(mapi_params *mp, scanner *sc)
 			return false;
 	}
 
-	if (!parse_path(mp, sc))
+	if (!parse_path(mp, sc, true))
 		return false;
 
 	// parse query parameters
@@ -343,6 +343,34 @@ parse_modern(mapi_params *mp, scanner *sc)
 }
 
 static bool
+parse_classic_query_parameters(mapi_params *mp, scanner *sc)
+{
+	assert(sc->c == '?');
+	do {
+		advance(sc); // skip & or ?
+
+		char *key;
+		char *value;
+		if (!scan_query_parameters(sc, &key, &value))
+			return false;
+		mapiparm parm = mapiparm_parse(key);
+		switch (parm) {
+			case CP_DATABASE:
+			case CP_LANGUAGE:
+				mapi_params_error msg = mapi_param_set_string(mp, parm, value);
+				if (msg)
+					return complain(sc, "parameter '%s': %s", key, msg);
+				break;
+			default:
+				// ignore
+				break;
+		}
+	} while (sc->c == '&');
+
+	return true;
+}
+
+static bool
 parse_classic_tcp(mapi_params *mp, scanner *sc)
 {
 	assert(sc->c != '/');
@@ -364,30 +392,12 @@ parse_classic_tcp(mapi_params *mp, scanner *sc)
 			return false;
 	}
 
-	if (!parse_path(mp, sc))
+	if (!parse_path(mp, sc, false))
 		return false;
 
 	if (sc->c == '?') {
-		do {
-			advance(sc); // skip & or ?
-
-			char *key;
-			char *value;
-			if (!scan_query_parameters(sc, &key, &value))
-				return false;
-			mapiparm parm = mapiparm_parse(key);
-			switch (parm) {
-				case CP_DATABASE:
-				case CP_LANGUAGE:
-					mapi_params_error msg = mapi_param_set_string(mp, parm, value);
-					if (msg)
-						return complain(sc, "parameter '%s': %s", key, msg);
-					break;
-				default:
-					// ignore
-					break;
-			}
-		} while (sc->c == '&');
+		if (!parse_classic_query_parameters(mp, sc))
+			return false;
 	}
 
 	// should have consumed everything
@@ -400,8 +410,18 @@ parse_classic_tcp(mapi_params *mp, scanner *sc)
 static bool
 parse_classic_unix(mapi_params *mp, scanner *sc)
 {
-	(void)mp;
-	return complain(sc, "mapi:/// not supported yet");
+	assert(sc->c == '/');
+	char *sock = find(sc, "?");
+
+	if (!store(mp, sc, CP_SOCK, sock))
+		return false;
+
+	if (sc->c == '?') {
+		if (!parse_classic_query_parameters(mp, sc))
+			return false;
+	}
+
+	return true;
 }
 
 static bool

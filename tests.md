@@ -1032,8 +1032,9 @@ EXPECT connect_tcp=
 ```
 
 ```test
-REJECT mapi:monetdb:///foo:bar@path/to/sock
 NOT pymonetdb
+PARSE mapi:monetdb:///foo:bar@path/to/sock
+EXPECT sock=/foo:bar@path/to/sock
 REJECT mapi:monetdb://foo:bar@/path/to/sock
 ```
 
@@ -1073,8 +1074,8 @@ EXPECT sock=
 EXPECT language=mal
 SET language=sql
 ACCEPT mapi:monetdb:///path/to/sock?language=mal
-EXPECT host=localhost.
-EXPECT sock=
+EXPECT host=
+EXPECT sock=/path/to/sock
 EXPECT language=mal
 ```
 
@@ -1089,7 +1090,7 @@ EXPECT valid=no
 ```
 
 ```test
-PARSE mapi:monetdb://localhost:12345/db?database=b%61r?language=m%61l
+PARSE mapi:monetdb://localhost:12345/db?database=b%61r&language=m%61l
 EXPECT database=b%61r
 EXPECT language=m%61l
 EXPECT valid=no
