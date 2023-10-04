@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int countcountcount = 0;
+
 
 int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 	mapi_params *mp = mapi_params_create();
@@ -22,7 +24,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
 
 	char *errmsg = NULL;
 
-	mapi_param_parse_url(mp, buf, &errmsg);
+	if (mapi_param_parse_url(mp, buf, &errmsg)) {
+		if (mapi_param_validate(mp))
+			countcountcount++;
+	}
 
 	mapi_params_destroy(mp);
 	free(buf);
