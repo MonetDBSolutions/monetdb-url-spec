@@ -12,8 +12,12 @@ from monetparameters import PARAMS
 SPEC = os.path.join(os.path.dirname(__file__), 'monetdb-url.md')
 
 
-ALSO_ALLOW = ['connect_tcp', 'connect_unix', 'connect_tls_verify',
-              'connect_binary', 'param1', 'param2', 'value1', 'value2']
+ALSO_ALLOW = [
+    'connect_tcp', 'connect_unix',
+    'connect_tls_verify', 'connect_certhash_algo', 'connect_certhash_digits',
+    'connect_binary',
+    'param1', 'param2', 'value1', 'value2',
+]
 
 
 class Line(str):
@@ -151,7 +155,7 @@ def check_bad_underscores(lines: List[Line]):
         #     break
         for m in PARAM_PATTERN.finditer(line):
             word = m.group(1) or m.group(2)
-            if word in valid or word.startswith('effective_'):
+            if word in valid:
                 continue
             ok = False
             print(f"{line.location}: unknown setting {word!r}")

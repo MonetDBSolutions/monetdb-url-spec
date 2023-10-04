@@ -385,13 +385,14 @@ meaning 'TCP-only'.
       Offer them to the server as a client certificate. Abort with
       an error if key or certificates cannot be read.
 
-    * If **connect_tls_verify** is 'hash', verify that the hash of certificate
-      offered by the server matches **certhash**. The certificate matches if the
-      hexadecimal representation of the hash starts with the hexadecimal digits in
-      **certhash**. Use only the leaf certificate in the certificate chain. The other
+    * If **connect_tls_verify** is 'hash', compute the digest of the certificate
+      offered by the server using algorithm **connect_certhash_algo**.
+      Convert it to lowercase hex digits and abort if this does not start with
+      **connect_certhash_digits**.
+
+      Note: use only the leaf certificate in the certificate chain. The other
       certificates in the chain MUST be ignored. They MUST NOT be compared against
       the hash and they MUST NOT be verified against any root certificate.
-      Abort if the certificate does not match.
 
     * If **connect_tls_verify** is 'cert', read a certificate from file
       **cert**. Abort if that fails. Verify the certificate chain offered by the
