@@ -443,6 +443,7 @@ mapi_param_validate(mapi_params *mp)
 
 	// 3. The string parameter **binary** must either parse as a boolean or as a
 	//    non-negative integer.
+	// (pretend valid so we can use mapi_param_connect_binary() to see if it parses)
 	mp->validated = true;
 	long level = mapi_param_connect_binary(mp);
 	mp->validated = false;
@@ -455,7 +456,7 @@ mapi_param_validate(mapi_params *mp)
 
 	// 5. If **certhash** is not empty, it must be of the form
 	//    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
-	//    and hexdigits is a non-empty sequence of 0-9, a-f and underscores.
+	//    and hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
 	const char *certhash_msg = validate_certhash(mp);
 	if (certhash_msg)
 		return certhash_msg;
@@ -465,9 +466,9 @@ mapi_param_validate(mapi_params *mp)
 		if (!mapi_param_bool(mp, CP_TLS))
 			return "'cert' and 'certhash' can only be used with monetdbs:";
 
-	// 7. Parameter **database** must consist only of upper- and lowercase letters,
-	//    digits, dashes and underscores. It must not start with a dash.
-	//
+	// 7. Parameters **database**, **tableschema** and **table** must consist only of
+	//    upper- and lowercase letters, digits, dashes and underscores. They must not
+	//    start with a dash.
 	const char *database = mapi_param_string(mp, CP_DATABASE);
 	if (!validate_identifier(database))
 		return "invalid database name";

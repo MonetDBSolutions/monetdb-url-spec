@@ -173,12 +173,14 @@ class Target:
 
     def parse(self, url: str):
         self.boundary()
-        if url.startswith("mapi:"):
+        if url.startswith("monetdb://") or url.startswith("monetdbs://"):
+            self._set_core_defaults()
+            self._parse_monetdb_url(url)
+        elif url.startswith("mapi:monetdb://"):
             self._set_core_defaults()
             self._parse_mapi_monetdb_url(url)
         else:
-            self._set_core_defaults()
-            self._parse_monetdb_url(url)
+            raise ValueError("URL must start with monetdb://, monetdbs:// or mapi:monetdb://")
         self.boundary()
 
     def _set_core_defaults(self):
@@ -265,8 +267,6 @@ class Target:
             if part.startswith('language='):
                 self.language = part[9:]
             elif part.startswith('database='):
-                if not self.sock:
-                    raise ValueError("database= is only allowed with Unix domain sockets")
                 self.database = part[9:]
             elif part.startswith('user=') or part.startswith('password='):
                 # ignored because libmapi does so
@@ -281,11 +281,8 @@ class Target:
                 # pymonetdb-only, backward compat
                 self.maxprefetch = part[12:]
             else:
-                if '=' in part:
-                    name = part.split('=')[0]
-                else:
-                    name = part
-                raise ValueError(f"illegal parameter {name!r}")
+                # unknown parameters are ignored
+                pass
 
 
     def validate(self):
@@ -300,7 +297,9 @@ class Target:
             raise ValueError("With sock=, host must be 'localhost'")
 
         # 3. The string parameter **binary** must either parse as a boolean or as a
-        #    non-negative integer. Let connect_binary do all the work.
+        #    non-negative integer.
+        #
+        # Let connect_binary do all the work.
         if self.connect_binary < 0:
             raise ValueError("Parameter 'binary' must be ≥ 0")
 
@@ -308,20 +307,25 @@ class Target:
         if self.sock and self.tls:
             raise ValueError("TLS cannot be used with Unix domain sockets")
 
-        # 5. If **cert** or **certhash** are not empty, **tls** must be 'on'.
-        if (self.cert or self.certhash) and not self.tls:
-            raise ValueError("'cert' and 'certhash' can only be used with monetdbs:")
-
-        # 6. If **certhash** is not empty, it must be of the form
-        #    `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
-        #    and hexdigits is a non-empty sequence of 0-9, a-f and underscores.
+        # 5. If **certhash** is not empty, it must be of the form
+        #    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
+        #    and hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
         if self.certhash and not _HASH_PATTERN.match(self.certhash):
             raise ValueError("invalid certhash")
 
-        # 7. Parameter **database** must consist only of upper- and lowercase letters,
-        #    digits, dashes and underscores. It must not start with a dash.
+        # 6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
+        if (self.cert or self.certhash) and not self.tls:
+            raise ValueError("'cert' and 'certhash' can only be used with monetdbs:")
+
+        # 7. Parameters **database**, **tableschema** and **table** must consist only of
+        #    upper- and lowercase letters, digits, dashes and underscores. They must not
+        #    start with a dash.
         if self.database and not _DATABASE_PATTERN.match(self.database):
             raise ValueError(f"invalid database name {self.database!r}")
+        if self.tableschema and not _DATABASE_PATTERN.match(self.tableschema):
+            raise ValueError(f"invalid schema name {self.tableschema!r}")
+        if self.table and not _DATABASE_PATTERN.match(self.table):
+            raise ValueError(f"invalid table name {self.table!r}")
 
     @property
     def connect_unix(self):

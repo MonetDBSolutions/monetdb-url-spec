@@ -270,9 +270,7 @@ parameters satisfy the following constraints.
    Parameters](#parameters).
 
 2. If **sock** and **host** are both not empty, **host** must be equal
-   to `localhost`. *(Unix domain sockets do not make sense anywhere
-   except on the local host, and URL syntax does not allow a port number
-   without some form of host identifier, hence, `localhost`.)*
+   to `localhost`.
 
 3. The string parameter **binary** must either parse as a boolean or as a
    non-negative integer.
@@ -281,12 +279,13 @@ parameters satisfy the following constraints.
 
 5. If **certhash** is not empty, it must be of the form
    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
-   and hexdigits is a non-empty sequence of 0-9, a-f and underscores.
+   and hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
 
 6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
 
-7. Parameter **database** must consist only of upper- and lowercase letters,
-   digits, dashes and underscores. It must not start with a dash.
+7. Parameters **database**, **tableschema** and **table** must consist only of
+   upper- and lowercase letters, digits, dashes and underscores. They must not
+   start with a dash.
 
 TODO BEFORE 0.9: figure out exactly where in the source
 the name constraints on databases are defined.

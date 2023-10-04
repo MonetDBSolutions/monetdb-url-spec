@@ -199,10 +199,6 @@ REJECT monetdbs://mdb.example.com/demo?certhash={X
 REJECT monetdbs://mdb.example.com/demo?certhash={banana}abcdef
 ```
 
-
-case errors
-
-
 ```test
 ACCEPT monetdb:///demo?sock=/var/monetdb/_sock&user=dbuser
 EXPECT connect_unix=/var/monetdb/_sock
@@ -592,6 +588,16 @@ EXPECT password=
 ## URL syntax
 
 General form
+
+```test
+ACCEPT monetdb://
+ACCEPT monetdbs://
+REJECT monetdb:/
+REJECT monetdbs:/
+REJECT monetdb:
+REJECT monetdbs:
+```
+
 
 ```test
 ACCEPT monetdb://host:12345/db1/schema2/table3?user=mr&password=bean
