@@ -13,6 +13,7 @@
 
 // love it when a task is so straightforward I can use global variables!
 static int start_line = -1;
+static int nstarted = 0;
 static mapi_params *mp = NULL;
 
 static bool
@@ -222,7 +223,7 @@ handle_expect_command(const char *location, char *key, char *value)
 
 
 static bool
-handle_line(int lineno, const char *location, char *line)
+handle_line(int lineno, const char *location, char *line, int verbose)
 {
 	// first trim trailing whitespace
 	size_t n = strlen(line);
@@ -234,13 +235,15 @@ handle_line(int lineno, const char *location, char *line)
 		// not in a code block
 		if (strcmp(line, "```test") == 0) {
 			// block starts here
+			nstarted++;
 			start_line = lineno;
 			mp = mapi_params_create();
 			if (mp == NULL) {
 				fprintf(stderr, "%s: malloc failed\n", location);
 				return false;
 			}
-			fprintf(stderr, "· %s\n", location);
+			if (verbose >= 2)
+				fprintf(stderr, "· %s\n", location);
 			return true;
 		} else {
 			// ignore
@@ -254,6 +257,8 @@ handle_line(int lineno, const char *location, char *line)
 			// lone backticks, block ends here
 			mapi_params_destroy(mp);
 			mp = NULL;
+			if (verbose >= 3)
+				fprintf(stderr, "\n");
 			return true;
 		} else {
 			fprintf(stderr, "%s: unexpected backtick\n", location);
@@ -262,6 +267,8 @@ handle_line(int lineno, const char *location, char *line)
 	}
 
 	// this is line from a code block
+	if (verbose >= 3)
+		fprintf(stderr, "%s\n", line);
 	const char *whitespace = " \t";
 	char *command = strtok(line, whitespace);
 	if (command == NULL) {
@@ -322,8 +329,9 @@ handle_line(int lineno, const char *location, char *line)
 }
 
 bool
-run_tests(const char *filename, FILE *f)
+run_tests(const char *filename, FILE *f, int verbose)
 {
+	int orig_nstarted = nstarted;
 	char *location = malloc(strlen(filename) + 100);
 	strcpy(location, filename);
 	char *location_lineno = &location[strlen(filename)];
@@ -348,13 +356,17 @@ run_tests(const char *filename, FILE *f)
 				break;
 			}
 		}
-		if (!handle_line(lineno, location, line_buffer))
+		if (!handle_line(lineno, location, line_buffer, verbose))
 			return false;
 	}
 
 	if (mp) {
 		fprintf(stderr, "%s:%d: unterminated code block starts here\n", filename, start_line);
 		return false;
+	}
+
+	if (verbose >= 1) {
+		fprintf(stderr, "ran %d succesful tests from %s\n", nstarted - orig_nstarted, filename);
 	}
 
 	return true;

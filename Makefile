@@ -16,8 +16,7 @@ testpy:
 	echo
 
 testc: murltest
-	./murltest c.md tests.md
-	echo
+	./murltest -v c.md tests.md
 
 murltest: params.o parseurl.o testsfile.o murltest.o
 	$(CC) $(CFLAGS) -o $@ $^

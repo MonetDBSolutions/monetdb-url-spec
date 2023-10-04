@@ -11,7 +11,7 @@
 char *USAGE = "Usage: murltest TESTFILES..";
 
 bool
-run_file(const char *filename)
+run_file(const char *filename, int verbose)
 {
 	FILE *to_close, *f;
 	if (strcmp(filename, "-") == 0) {
@@ -26,17 +26,17 @@ run_file(const char *filename)
 		to_close = f;
 	}
 
-	bool ok = run_tests(filename, f);
+	bool ok = run_tests(filename, f, verbose);
 
 	if (to_close)
 		fclose(to_close);
 	return ok;
 }
 
-bool run_files(char **files)
+bool run_files(char **files, int verbose)
 {
 	while (*files) {
-		if (!run_file(*files))
+		if (!run_file(*files, verbose))
 			return false;
 		files++;
 	}
@@ -46,6 +46,8 @@ bool run_files(char **files)
 int
 main(int argc, char **argv)
 {
+	int verbose = 0;
+
 	char **files = calloc(argc + 1, sizeof(char*));
 	if (!files)
 		return 3;
@@ -56,9 +58,23 @@ main(int argc, char **argv)
 			*next_slot++ = arg;
 			continue;
 		}
+		if (arg[1] == 'v') {
+			char *p = &arg[1];
+			while (*p == 'v') {
+				p++;
+				verbose++;
+			}
+			if (*p == '\0')
+				continue;
+			fprintf(stderr, "invalid letter %c in flag %s\n", *p, arg);
+			return 1;
+		} else {
+			fprintf(stderr, "invalid flag %s\n", arg);
+			return 1;
+		}
 	}
 
-	bool ok = run_files(files);
+	bool ok = run_files(files, verbose);
 
 	return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
