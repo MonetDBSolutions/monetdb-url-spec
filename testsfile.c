@@ -351,17 +351,24 @@ run_tests(const char *filename, FILE *f, int verbose)
 		if (nread < 0) {
 			if (errno) {
 				fprintf(stderr, "%s: %s\n", location, strerror(errno));
+				free(line_buffer);
+				free(location);
 				return false;
 			} else {
 				break;
 			}
 		}
-		if (!handle_line(lineno, location, line_buffer, verbose))
+		if (!handle_line(lineno, location, line_buffer, verbose)) {
+			free(line_buffer);
+			free(location);
 			return false;
+		}
 	}
 
 	if (mp) {
 		fprintf(stderr, "%s:%d: unterminated code block starts here\n", filename, start_line);
+		free(line_buffer);
+		free(location);
 		return false;
 	}
 
@@ -369,5 +376,7 @@ run_tests(const char *filename, FILE *f, int verbose)
 		fprintf(stderr, "ran %d succesful tests from %s\n", nstarted - orig_nstarted, filename);
 	}
 
+	free(line_buffer);
+	free(location);
 	return true;
 }

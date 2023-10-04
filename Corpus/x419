@@ -1,0 +1,1 @@
+mapi:monetdb://foo:bar@localhost:12345/demo

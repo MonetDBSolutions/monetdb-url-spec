@@ -354,10 +354,11 @@ parse_classic_query_parameters(mapi_params *mp, scanner *sc)
 		if (!scan_query_parameters(sc, &key, &value))
 			return false;
 		mapiparm parm = mapiparm_parse(key);
+		mapi_params_error msg;
 		switch (parm) {
 			case CP_DATABASE:
 			case CP_LANGUAGE:
-				mapi_params_error msg = mapi_param_set_string(mp, parm, value);
+				msg = mapi_param_set_string(mp, parm, value);
 				if (msg)
 					return complain(sc, "parameter '%s': %s", key, msg);
 				break;
@@ -487,9 +488,10 @@ bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
 	} else {
 		// went wrong
 		assert(sc.error_message[0] != '\0');
-		char *msg = strdup(sc.error_message);
-		if (error_buffer)
+		if (error_buffer) {
+			char *msg = strdup(sc.error_message);
 			*error_buffer = msg;
+		}
 		ok = false;
 	}
 

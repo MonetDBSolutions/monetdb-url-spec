@@ -1,0 +1,1 @@
+monetdb:///demo?sock=/var/monetdb/_sock&user=dbuser
