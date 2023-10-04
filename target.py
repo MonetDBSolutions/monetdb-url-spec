@@ -23,7 +23,11 @@ KNOWN = set([
     'binary', 'replysize', 'fetchsize', 'maxprefetch']
 )
 IGNORED = set(['hash', 'debug', 'logfile'])
-VIRTUAL = set(['connect_unix', 'connect_tcp', 'connect_tls_verify', 'connect_binary'])
+VIRTUAL = set([
+    'connect_unix', 'connect_tcp',
+    'connect_tls_verify', 'connect_certhash_algo', 'connect_certhash_digits',
+    'connect_binary'
+])
 
 _BOOLEANS = dict(
     true=True,
@@ -90,6 +94,8 @@ class urlparam:
     def __set__(self, instance, value):
         parsed = (self.parser)(value)
         instance._VALUES[self.field] = parsed
+        if self.field in instance._TOUCHED:
+            instance._TOUCHED[self.field] = True
 
     def __delete__(self, instance):
         raise Exception("cannot delete url parameter")
@@ -100,11 +106,13 @@ class Target:
     __slots__ = [
         '_VALUES',
         '_OTHERS',
+        '_TOUCHED',
     ]
 
     def __init__(self):
         self._VALUES = dict(**_DEFAULTS)
         self._OTHERS = {}
+        self._TOUCHED = dict(user=False, password=False)
 
     tls = urlparam('tls', 'bool', 'secure the connection using TLS')
     host = urlparam(
@@ -156,17 +164,22 @@ class Target:
         else:
             raise KeyError(key)
 
+    def boundary(self):
+        """If user was set and password wasn't, clear password"""
+        if self._TOUCHED['user'] and not self._TOUCHED['password']:
+            self.password = ''
+        self._TOUCHED['user'] = False
+        self._TOUCHED['password'] = False
+
     def parse(self, url: str):
-        orig_user = self.user
-        orig_password = self.password
+        self.boundary()
         if url.startswith("mapi:"):
             self._set_core_defaults()
             self._parse_mapi_monetdb_url(url)
         else:
             self._set_core_defaults()
             self._parse_monetdb_url(url)
-        if self.user != orig_user and self.password == orig_password:
-            self.password = ''
+        self.boundary()
 
     def _set_core_defaults(self):
         self.tls = False
@@ -348,10 +361,23 @@ class Target:
             except ValueError:
                 raise ValueError("invalid value for 'binary': {self.binary}, must be int or bool")
 
+    @property
+    def connect_certhash_algo(self):
+        m = _HASH_PATTERN.match(self.certhash)
+        algo = m.group(1)
+        if algo is None:
+            return 'sha1'
+        else:
+            return algo.lower()
+
+    @property
+    def connect_certhash_digits(self):
+        m = _HASH_PATTERN.match(self.certhash)
+        return m.group(2).lower().replace(':', '')
 
 _UNQUOTE_PATTERN = re.compile(b"[%](.?.?)")
 _DATABASE_PATTERN = re.compile("^[A-Za-z0-9_][-A-Za-z0-9_]*$")
-_HASH_PATTERN = re.compile(r"(?:[{](\w+)[}])?([0-9a-fA-F_]+)")
+_HASH_PATTERN = re.compile(r"^(?:[{](sha1|sha256)[}])?([0-9a-f:]{1,64})$", re.IGNORECASE)
 
 
 def _unquote_fun(m) -> bytes:

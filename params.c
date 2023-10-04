@@ -373,7 +373,8 @@ validate_certhash(mapi_params *mp)
 	mp->certhash_algo = "sha1";
 	mp->certhash_digits_buffer[0] = '\0';
 
-	const char *certhash = mapi_param_string(mp, CP_CERTHASH);
+	const char *full_certhash = mapi_param_string(mp, CP_CERTHASH);
+	const char *certhash = full_certhash;
 	if (*certhash == '\0')
 		return NULL;
 
@@ -402,6 +403,8 @@ validate_certhash(mapi_params *mp)
 			return "certhash: too long";
 		mp->certhash_digits_buffer[i++] = tolower(*r);
 	}
+	if (i == 0)
+		return "certhash: need at least one digit";
 
 	return NULL;
 }

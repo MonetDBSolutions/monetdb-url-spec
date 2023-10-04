@@ -190,6 +190,8 @@ EXPECT connect_certhash_digits=ab
 ```
 
 ```test
+REJECT monetdbs://mdb.example.com/demo?certhash={sha1}
+REJECT monetdbs://mdb.example.com/demo?certhash={sha256}
 REJECT monetdbs://mdb.example.com/demo?certhash=X
 REJECT monetdbs://mdb.example.com/demo?certhash={sha1}X
 REJECT monetdbs://mdb.example.com/demo?certhash={sha99}X
