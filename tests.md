@@ -215,6 +215,51 @@ EXPECT password=
 
 Tests derived from the parameter section. Test data types and defaults.
 
+Everything can be SET and EXPECTed
+
+```test
+SET tls=on
+EXPECT tls=on
+SET host=bananahost
+EXPECT host=bananahost
+SET port=123
+EXPECT port=123
+SET database=bananadatabase
+EXPECT database=bananadatabase
+SET tableschema=bananatableschema
+EXPECT tableschema=bananatableschema
+SET table=bananatable
+EXPECT table=bananatable
+SET sock=c:\foo.txt
+EXPECT sock=c:\foo.txt
+SET cert=c:\foo.txt
+EXPECT cert=c:\foo.txt
+SET certhash=bananacerthash
+EXPECT certhash=bananacerthash
+SET clientkey=c:\foo.txt
+EXPECT clientkey=c:\foo.txt
+SET clientcert=c:\foo.txt
+EXPECT clientcert=c:\foo.txt
+SET user=bananauser
+EXPECT user=bananauser
+SET password=bananapassword
+EXPECT password=bananapassword
+SET language=bananalanguage
+EXPECT language=bananalanguage
+SET autocommit=on
+EXPECT autocommit=on
+SET schema=bananaschema
+EXPECT schema=bananaschema
+SET timezone=123
+EXPECT timezone=123
+SET binary=bananabinary
+EXPECT binary=bananabinary
+SET replysize=123
+EXPECT replysize=123
+SET fetchsize=123
+EXPECT fetchsize=123
+```
+
 ### core defaults
 
 ```test
@@ -258,6 +303,8 @@ ACCEPT monetdbs:///?certhash={sha256}001122ff
 ACCEPT monetdbs:///?certhash=001122ff
 REJECT monetdbs:///?certhash=sha1:001122ff
 REJECT monetdbs:///?certhash={sha1}}001122gg
+ACCEPT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+REJECT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8550
 ```
 
 ### clientkey, clientcert
@@ -350,6 +397,7 @@ EXPECT timezone=120
 ACCEPT monetdb:///?timezone=-120
 EXPECT timezone=-120
 REJECT monetdb:///?timezone=banana
+REJECT monetdb:///?timezone=
 ```
 
 ### replysize and fetchsize
@@ -365,6 +413,8 @@ ACCEPT monetdb:///?fetchsize=100&replysize=200
 EXPECT replysize=200
 ACCEPT monetdb:///?replysize=100&fetchsize=200
 EXPECT replysize=200
+REJECT monetdb:///?replysize=
+REJECT monetdb:///?fetchsize=
 ```
 
 ### binary
@@ -743,6 +793,14 @@ REJECT monetdbs://not.localhost/?sock=/a/path
 ```
 
 ```test
+ACCEPT monetdbs:///?cert=/a/path
+ACCEPT monetdbs:///?certhash={sha256}aa
+ACCEPT monetdbs:///?cert=/a/path&certhash={sha256}aa
+REJECT monetdb:///?cert=/a/path
+REJECT monetdb:///?certhash={sha256}aa
+```
+
+```test
 SET database=
 EXPECT valid=yes
 SET database=banana
@@ -831,6 +889,68 @@ EXPECT valid=no
 SET table=with?questionmark
 EXPECT valid=no
 ```
+
+```test
+SET tls=off
+SET cert=
+SET certhash=
+EXPECT valid=yes
+EXPECT connect_tls_verify=
+```
+
+```test
+SET tls=off
+SET cert=
+SET certhash=abcdef
+EXPECT valid=no
+```
+
+```test
+SET tls=off
+SET cert=/foo
+SET certhash=
+EXPECT valid=no
+```
+
+```test
+SET tls=off
+SET cert=/foo
+SET certhash=abcdef
+EXPECT valid=no
+```
+
+```test
+SET tls=on
+SET cert=
+SET certhash=
+EXPECT valid=yes
+EXPECT connect_tls_verify=system
+```
+
+```test
+SET tls=on
+SET cert=
+SET certhash=abcdef
+EXPECT valid=yes
+EXPECT connect_tls_verify=hash
+```
+
+```test
+SET tls=on
+SET cert=/foo
+SET certhash=
+EXPECT valid=yes
+EXPECT connect_tls_verify=cert
+```
+
+```test
+SET tls=on
+SET cert=/foo
+SET certhash=abcdef
+EXPECT valid=yes
+EXPECT connect_tls_verify=hash
+```
+
 
 # Legacy URL's
 

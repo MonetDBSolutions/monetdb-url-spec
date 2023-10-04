@@ -122,7 +122,7 @@ struct mapi_params {
 	long password_generation;
 	char unix_sock_name_buffer[50];
 	const char *certhash_algo;
-	char certhash_digits_buffer[33];
+	char certhash_digits_buffer[65];
 	bool validated;
 };
 
@@ -387,7 +387,10 @@ validate_certhash(mapi_params *mp)
 		return "certhash: invalid algorithm";
 	}
 
-	const int n = 32;
+	// longest supported hash is sha256, 256 bits = 64 nibbles
+	const int n = 64;
+
+
 	assert(sizeof(mp->certhash_digits_buffer) >= n + 1);
 	int i = 0;
 	for (const char *r = certhash; *r; r++) {
