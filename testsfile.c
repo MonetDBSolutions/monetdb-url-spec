@@ -1,6 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 
-#include "testsfile.h"
+#include "murltest.h"
 #include "params.h"
 
 #include <assert.h>

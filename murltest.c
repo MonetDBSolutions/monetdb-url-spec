@@ -1,6 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 
-#include "testsfile.h"
+#include "murltest.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -33,20 +33,32 @@ run_file(const char *filename)
 	return ok;
 }
 
+bool run_files(char **files)
+{
+	while (*files) {
+		if (!run_file(*files))
+			return false;
+		files++;
+	}
+	return true;
+}
+
 int
 main(int argc, char **argv)
 {
-	if (argc < 2) {
-		fprintf(stderr, "%s\n", USAGE);
-		return 1;
+	char **files = calloc(argc + 1, sizeof(char*));
+	if (!files)
+		return 3;
+	char **next_slot = &files[0];
+	for (int i = 1; i < argc; i++) {
+		char *arg = argv[i];
+		if (arg[0] != '-') {
+			*next_slot++ = arg;
+			continue;
+		}
 	}
 
-	bool ok = true;
-	for (int i = 1; i < argc; i++) {
-		ok &= run_file(argv[i]);
-		if (!ok)
-			break;
-	}
+	bool ok = run_files(files);
 
 	return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }

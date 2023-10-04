@@ -19,9 +19,9 @@ testc: murltest
 	./murltest c.md tests.md
 	echo
 
-murltest: murltest.o testsfile.o parseurl.o params.o
+murltest: params.o parseurl.o testsfile.o murltest.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-%.o: %.c params.h testsfile.h
+%.o: %.c params.h murltest.h
 	$(CC) $(CFLAGS) -c $<
 
