@@ -104,6 +104,8 @@ class TargetTests(TestCase):
                     raise
                 else:
                     raise AssertionError(f"At {line.location}: {e}")
+            except unittest.SkipTest:
+                break
             except Exception as e:
                 if hasattr(e, 'add_note'):
                     e.add_note(f"At {line.location}")
@@ -117,6 +119,8 @@ class TargetTests(TestCase):
         command = command.upper()
         if command == "PARSE":
             self.apply_parse(target, rest)
+        elif command == "ACCEPT":
+            self.apply_accept(target, rest)
         elif command == "REJECT":
             self.apply_reject(target, rest)
         elif command == "EXPECT":
@@ -125,10 +129,21 @@ class TargetTests(TestCase):
         elif command == "SET":
             key, value = rest.split('=', 1)
             self.apply_set(target, key, value)
+        elif command == "ONLY":
+            impl = rest
+            if impl != 'pymonetdb':
+                raise unittest.SkipTest(f"only for {impl}")
+        elif command == "NOT":
+            impl = rest
+            if impl == 'pymonetdb':
+                raise unittest.SkipTest(f"not for {impl}")
         else:
             self.fail(f"Unknown command: {command}")
 
     def apply_parse(self, target: Target, url):
+        target.parse(url)
+
+    def apply_accept(self, target: Target, url):
         target.parse(url)
         target.validate()
 
