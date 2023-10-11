@@ -239,6 +239,22 @@ scan_query_parameters(scanner *sc, char **key, char **value)
 }
 
 static bool
+parse_port(mapi_params *mp, scanner *sc) {
+	if (sc->c == ':') {
+		advance(sc);
+		char *portstr = scan(sc, generic_special);
+		char *end;
+		long port = strtol(portstr, &end, 10);
+		if (portstr[0] == '\0' || *end != '\0' || port < 1 || port > 65535)
+			return complain(sc, "invalid port: '%s'", portstr);
+		mapi_params_error msg = mapi_param_set_long(mp, CP_PORT, port);
+		if (msg != NULL)
+			return complain(sc, "could not set port: %s\n", msg);
+	}
+	return true;
+}
+
+static bool
 parse_path(mapi_params *mp, scanner *sc, bool percent)
 {
 	// parse the database name
@@ -295,7 +311,11 @@ parse_modern(mapi_params *mp, scanner *sc)
 		char *host = scan(sc, generic_special);
 		if (!percent_decode(sc, "host name", host))
 			return false;
-		if (sc->c == ':' && strlen(host) == 0) {
+		if (strcmp(host, "localhost") == 0)
+			host = "";
+		else if (strcmp(host, "localhost.") == 0)
+			host = "localhost";
+		else if (sc->c == ':' && strlen(host) == 0) {
 			// cannot port number without host, so this is not allowed: monetdb://:50000
 			return unexpected(sc);
 		}
@@ -303,13 +323,8 @@ parse_modern(mapi_params *mp, scanner *sc)
 			return false;
 	}
 
-	// parse the port
-	if (sc->c == ':') {
-		advance(sc);
-		char *port = scan(sc, generic_special);
-		if (!store(mp, sc, CP_PORT, port))
-			return false;
-	}
+	if (!parse_port(mp, sc))
+		return false;
 
 	if (!parse_path(mp, sc, true))
 		return false;
@@ -378,20 +393,11 @@ parse_classic_tcp(mapi_params *mp, scanner *sc)
 
 	// parse the host
 	char *host = find(sc, ":?/");
-	// in mapi:monetdb:// urls, localhost means a tcp connection.
-	if (strcmp(host, "localhost") == 0) {
-		host = "localhost.";
-	}
 	if (!store(mp, sc, CP_HOST, host))
 		return false;
 
-	// parse the port
-	if (sc->c == ':') {
-		advance(sc);
-		char *port = scan(sc, generic_special);
-		if (!store(mp, sc, CP_PORT, port))
-			return false;
-	}
+	if (!parse_port(mp, sc))
+		return false;
 
 	if (!parse_path(mp, sc, false))
 		return false;
@@ -474,7 +480,7 @@ bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
 	// clear existing core values
 	mapi_param_set_bool(mp, CP_TLS, false);
 	mapi_param_set_string(mp, CP_HOST, "");
-	mapi_param_set_long(mp, CP_PORT, 50000);
+	mapi_param_set_long(mp, CP_PORT, -1);
 	mapi_param_set_string(mp, CP_DATABASE, "");
 
 	long user_gen = mapi_param_user_generation(mp);

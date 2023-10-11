@@ -186,14 +186,16 @@ handle_expect_command(const char *location, char *key, char *value)
 		return true;
 	}
 
+	if (strcmp("connect_scan", key) == 0)
+		return expect_bool(location, CP_UNKNOWN, mapi_param_connect_scan, value);
 	if (strcmp("connect_unix", key) == 0)
 		return expect_string(location, CP_UNKNOWN, mapi_param_connect_unix, value);
 	if (strcmp("connect_tcp", key) == 0)
 		return expect_string(location, CP_UNKNOWN, mapi_param_connect_tcp, value);
+	if (strcmp("connect_port", key) == 0)
+		return expect_long(location, CP_UNKNOWN, mapi_param_connect_port, value);
 	if (strcmp("connect_tls_verify", key) == 0)
 		return expect_string(location, CP_UNKNOWN, mapi_param_connect_tls_verify, value);
-	if (strcmp("connect_certhash_algo", key) == 0)
-		return expect_string(location, CP_UNKNOWN, mapi_param_connect_certhash_algo, value);
 	if (strcmp("connect_certhash_digits", key) == 0)
 		return expect_string(location, CP_UNKNOWN, mapi_param_connect_certhash_digits, value);
 	if (strcmp("connect_binary", key) == 0)
@@ -205,7 +207,10 @@ handle_expect_command(const char *location, char *key, char *value)
 		return false;
 	}
 	if (parm == CP_IGNORE) {
-		fprintf(stderr, "%s: EXPECTing ignored parameters is not supported yet\n", location);
+		if (strncmp(key, "connect_", 8) == 0)
+			fprintf(stderr, "%s: unknown virtual parameter '%s'\n", location, key);
+		else
+			fprintf(stderr, "%s: EXPECTing ignored parameters is not supported yet\n", location);
 		return false;
 	}
 
@@ -328,8 +333,8 @@ handle_line(int lineno, const char *location, char *line, int verbose)
 	return false;
 }
 
-bool
-run_tests(const char *filename, FILE *f, int verbose)
+static bool
+run_tests_inner(const char *filename, FILE *f, int verbose)
 {
 	int orig_nstarted = nstarted;
 	char *location = malloc(strlen(filename) + 100);
@@ -379,4 +384,16 @@ run_tests(const char *filename, FILE *f, int verbose)
 	free(line_buffer);
 	free(location);
 	return true;
+}
+
+bool
+run_tests(const char *filename, FILE *f, int verbose)
+{
+	assert(mp == NULL);
+	bool ok = run_tests_inner(filename, f, verbose);
+	if (mp) {
+		mapi_params_destroy(mp);
+		mp = NULL;
+	}
+	return ok;
 }

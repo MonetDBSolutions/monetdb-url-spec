@@ -263,7 +263,7 @@ The `monetdbe:` scheme is not covered by this version of the specification.
 The host, port, database, tableschema and table fields map to the corresponding
 connection parameters. The latter three MUST be percent-decoded first ([RFC3986
 Section 2.1][rfc3986percent]). Fields that are not present are mapped to empty
-strings or in the case of port, to however 'not present' is encoded.
+strings or in the case of port, to  -1.
 
 If the host field is equal to 'localhost' (without period), the **host**
 parameter MUST be cleared. If the host field is equal to 'localhost.' (with

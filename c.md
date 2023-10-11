@@ -32,9 +32,10 @@ PARSE monetdb://[abc]
 ```
 
 
-
 ```test
-PARSE mapi:monetdb://monet.db:12345/demo
-EXPECT tls=off
+ACCEPT monetdb://localhost.:12345/demo
+EXPECT port=12345
+
 ```
+
 

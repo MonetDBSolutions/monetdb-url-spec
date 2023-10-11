@@ -121,8 +121,7 @@ struct mapi_params {
 	long user_generation;
 	long password_generation;
 	char unix_sock_name_buffer[50];
-	const char *certhash_algo;
-	char certhash_digits_buffer[65];
+	char certhash_digits_buffer[64 + 2 + 1]; // fit more than required plus trailing '\0'
 	bool validated;
 };
 
@@ -144,7 +143,7 @@ mapi_params *mapi_params_create(void)
 			[CP_AUTOCOMMIT - CP__BOOL_START] = true,
 		},
 		.long_params = {
-			[CP_PORT - CP__LONG_START] = 50000,
+			[CP_PORT - CP__LONG_START] = -1,
 			[CP_TIMEZONE - CP__LONG_START] = LONG_MIN,
 			[CP_REPLYSIZE - CP__LONG_START] = 100,
 		},
@@ -234,9 +233,6 @@ mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 {
 	if (parm < CP__LONG_START || parm >= CP__LONG_END)
 		FATAL();
-	if (parm == CP_PORT)
-		if (value < 1 || value > 65535)
-			return "port number out of range";
 	mp->long_params[parm - CP__LONG_START] = value;
 	mp->validated = false;
 	return NULL;
@@ -370,7 +366,6 @@ nonempty(const mapi_params *mp, mapiparm parm)
 static mapi_params_error
 validate_certhash(mapi_params *mp)
 {
-	mp->certhash_algo = "sha1";
 	mp->certhash_digits_buffer[0] = '\0';
 
 	const char *full_certhash = mapi_param_string(mp, CP_CERTHASH);
@@ -378,31 +373,22 @@ validate_certhash(mapi_params *mp)
 	if (*certhash == '\0')
 		return NULL;
 
-	if (strncasecmp(certhash, "{sha1}", 6) == 0) {
-		mp->certhash_algo = "sha1";
-		certhash += 6;
-	} else if (strncasecmp(certhash, "{sha256}", 8) == 0) {
-		mp->certhash_algo = "sha256";
+	if (strncmp(certhash, "{sha256}", 8) == 0) {
 		certhash += 8;
-	} else if (certhash[0] == '{') {
-		return "certhash: invalid algorithm";
+	} else {
+		return "expected certhash to start with '{sha256}'";
 	}
 
-	// longest supported hash is sha256, 256 bits = 64 nibbles
-	const int n = 64;
-
-
-	assert(sizeof(mp->certhash_digits_buffer) >= n + 1);
 	int i = 0;
-	for (const char *r = certhash; *r; r++) {
+	for (const char *r = certhash; *r != '\0'; r++) {
 		if (*r == ':')
 			continue;
 		if (!isxdigit(*r))
 			return "certhash: invalid hex digit";
-		if (i == n)
-			return "certhash: too long";
-		mp->certhash_digits_buffer[i++] = tolower(*r);
+		if (i < sizeof(mp->certhash_digits_buffer) - 1)
+			mp->certhash_digits_buffer[i++] = tolower(*r);
 	}
+	mp->certhash_digits_buffer[i++] = '\0';
 	if (i == 0)
 		return "certhash: need at least one digit";
 
@@ -435,11 +421,9 @@ mapi_param_validate(mapi_params *mp)
 	//    Parameters](#parameters).
 	// (this has already been checked)
 
-	// 2. If **sock** and **host** are both not empty, **host** must be equal
-	//    to `localhost`.
+	// 2. At least one of **sock** and **host** must be empty.
 	if (nonempty(mp, CP_SOCK) && nonempty(mp, CP_HOST))
-		if (strcmp("localhost", mapi_param_string(mp, CP_HOST)) != 0)
-			return "With sock=, host must be 'localhost'";
+		return "With sock=, host must be 'localhost'";
 
 	// 3. The string parameter **binary** must either parse as a boolean or as a
 	//    non-negative integer.
@@ -454,14 +438,13 @@ mapi_param_validate(mapi_params *mp)
 	if (nonempty(mp, CP_SOCK) && mapi_param_bool(mp, CP_TLS))
 		return "TLS cannot be used with Unix domain sockets";
 
-	// 5. If **certhash** is not empty, it must be of the form
-	//    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
-	//    and hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
+	// 5. If **certhash** is not empty, it must be of the form `{sha256}hexdigits`
+	//    where hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
 	const char *certhash_msg = validate_certhash(mp);
 	if (certhash_msg)
 		return certhash_msg;
 
-	// 6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
+	// 6. If **tls** is 'off', **cert** and **certhash** must be 'off' as well.
 	if (nonempty(mp, CP_CERT) || nonempty(mp, CP_CERTHASH))
 		if (!mapi_param_bool(mp, CP_TLS))
 			return "'cert' and 'certhash' can only be used with monetdbs:";
@@ -479,12 +462,37 @@ mapi_param_validate(mapi_params *mp)
 	if (!validate_identifier(table))
 		return "invalid table name";
 
-	// compute this here so the getter function can take const mapi_params*
+	// 8. Parameter **port** must be -1 or in the range 1-65535.
 	long port = mapi_param_long(mp, CP_PORT);
-	snprintf(mp->unix_sock_name_buffer, sizeof(mp->unix_sock_name_buffer), "/tmp/.s.monetdb.%ld", port);
+	bool port_ok = (port == -1 || (port >= 1 && port <= 65535));
+	if (!port_ok)
+		return "invalid port";
+
+	// compute this here so the getter function can take const mapi_params*
+	long effective_port = mapi_param_connect_port(mp);
+	snprintf(mp->unix_sock_name_buffer, sizeof(mp->unix_sock_name_buffer), "/tmp/.s.monetdb.%ld", effective_port);
 
 	mp->validated = true;
 	return NULL;
+}
+
+bool
+mapi_param_connect_scan(const mapi_params *mp)
+{
+	if (empty(mp, CP_DATABASE))
+		return false;
+	if (nonempty(mp, CP_SOCK))
+		return false;
+	if (nonempty(mp, CP_HOST))
+		return false;
+	long port = mapi_param_long(mp, CP_PORT);
+	if (port != -1)
+		return false;
+	bool tls = mapi_param_bool(mp, CP_TLS);
+	if (tls)
+		return false;
+
+	return true;
 }
 
 const char *
@@ -499,7 +507,7 @@ mapi_param_connect_unix(const mapi_params *mp)
 		return sock;
 	if (tls)
 		return "";
-	if (*host == '\0' || strcmp(host, "localhost") == 0)
+	if (*host == '\0')
 		return mp->unix_sock_name_buffer;
 	return "";
 }
@@ -515,9 +523,19 @@ mapi_param_connect_tcp(const mapi_params *mp)
 
 	if (*sock)
 		return "";
-	if (!*host || strcmp(host, "localhost.") == 0)
+	if (!*host)
 		return "localhost";
 	return host;
+}
+
+long
+mapi_param_connect_port(const mapi_params *mp)
+{
+	long port = mapi_param_long(mp, CP_PORT);
+	if (port == -1)
+		return 50000;
+	else
+		return port;
 }
 
 const char*
@@ -535,12 +553,6 @@ mapi_param_connect_tls_verify(const mapi_params *mp)
 	if (*cert)
 		return "cert";
 	return "system";
-}
-
-const char*
-mapi_param_connect_certhash_algo(const mapi_params *mp)
-{
-	return mp->certhash_algo;
 }
 
 const char*

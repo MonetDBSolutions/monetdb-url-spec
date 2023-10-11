@@ -67,14 +67,17 @@ main(int argc, char **argv)
 			if (*p == '\0')
 				continue;
 			fprintf(stderr, "invalid letter %c in flag %s\n", *p, arg);
+			free(files);
 			return 1;
 		} else {
 			fprintf(stderr, "invalid flag %s\n", arg);
+			free(files);
 			return 1;
 		}
 	}
 
 	bool ok = run_files(files, verbose);
 
+	free(files);
 	return ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
