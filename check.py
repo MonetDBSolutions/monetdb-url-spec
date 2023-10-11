@@ -13,7 +13,7 @@ SPEC = os.path.join(os.path.dirname(__file__), 'monetdb-url.md')
 
 
 ALSO_ALLOW = [
-    'connect_tcp', 'connect_unix',
+    'connect_unix', 'connect_tcp', 'connect_port', 'connect_scan',
     'connect_tls_verify', 'connect_certhash_algo', 'connect_certhash_digits',
     'connect_binary',
     'param1', 'param2', 'value1', 'value2',
@@ -158,7 +158,10 @@ def check_bad_underscores(lines: List[Line]):
             if word in valid:
                 continue
             ok = False
-            print(f"{line.location}: unknown setting {word!r}")
+            if word.startswith('connect_'):
+                print(f"{line.location}: unknown setting {word!r}, maybe add it to ALSO_ALLOW?")
+            else:
+                print(f"{line.location}: unknown setting {word!r}")
     return ok
 
 

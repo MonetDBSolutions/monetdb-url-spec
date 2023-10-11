@@ -24,8 +24,8 @@ PARAMS = [
           descr="IP number, domain name or one of the special values `localhost` and `localhost.`",
           core=True),
 
-    Param("port", "integer", default="50000",
-          descr="TCP port, also used to pick Unix Domain socket path",
+    Param("port", "integer", default='not present',
+          descr="integer TCP port, also used to pick Unix Domain socket path",
           core=True),
 
     Param("database", "string", default='""',

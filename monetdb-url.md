@@ -21,31 +21,57 @@ described in [RFC 2119][rfc2119].
 [rfc2119]: https://datatracker.ietf.org/doc/html/rfc2119
 [rfc3986]: https://datatracker.ietf.org/doc/html/rfc3986
 
-TODO field / property / attribute be consistent
+TODO BEFORE 0.9: field / property / attribute be consistent
 
 
 ## Examples
 
 <dl>
 
-  <dt><code>monetdb://localhost:50000/demo?user=monetdb&password=monetdb</code></dt>
-  <dd>
-    First try to connect using Unix Domain socket <code>/tmp/.s.monetdb.50000</code>, if
-    supported. If that fails, try a TCP connection to localhost (either IPv6 or
-    IPv4) port 50000. Try to log in to database <code>demo</code> using the given user name
-    and password. Do not attempt to use TLS.
-  </dd>
-
   <dt><code>monetdb:///demo</code></dt>
   <dd>
-    Equivalent of the above, except that user name and password are no longer specified
-    and must be provided externally.
+    Scan /tmp for Unix domain sockets named <code>/tmp/.s.monetdb.<b>&lt;integer 1-65535&gt;</b></code>.
+    Connect to them one by one and try to log in to database 'demo'.
+    Return the first connection where this succeeds.
+    Try TCP localhost port 50000 if none succeed.
+    Do not secure the connection using TLS.
+    This is the behavior of libmapi if neither host nor port is given but database is.
+    User name and password are not given in the URL and must be provided externally.
+    On Windows, no equivalent for /tmp has been defined so only TCP is tried.
   </dd>
 
-  <dt><code>monetdb://localhost./demo</code></dt>
+  <dt><code>monetdb://localhost/demo</dt>
   <dd>
-    Try to connect to database 'demo' on TCP port 50000 on localhost (either IPv4
-    or IPv6). Do not try the Unix Domain socket.
+    Identical to the above. This is because many URL parsers do not allow a port
+    number if no host is given, so 'localhost' is treated as 'no host'.
+  </dd>
+
+  <dt><code>monetdb://localhost./demo</dt>
+  <dd>
+    Try to make a TCP connection to localhost, port 50000.
+    So, if you really mean 'localhost', write 'localhost.' with a trailing period.
+  </dd>
+
+  <dt><code>monetdb://localhost.:12345/demo</dt>
+  <dd>
+    Same as above, but port 12345.
+  </dd>
+
+  <dt><code>monetdb://localhost:12345/demo</dt>
+  <dd>
+    This is 'localhost' without the trailing period.
+    First, try to connect to Unix domain socket /tmp/.s.monetdb.12345.
+    If this does not succeed, fall back to TCP localhost port 12345.
+    If a connection was established, try to log in etc.
+    This is more Unix domain magic to stay compatible with libmapi.
+    Note that as opposed to <code>monetdb:///demo</code>,
+    a login failure on the Unix socket does not cause an attempt on the
+    TCP socket.
+  </dd>
+
+  <dt><code>monetdb:///demo?user=monetdb&password=monetdb</code></dt>
+  <dd>
+    User name and password are part of the URL.
   </dd>
 
   <dt><code>monetdb://mdb.example.com:12345/demo</code></dt>
@@ -85,7 +111,7 @@ TODO field / property / attribute be consistent
     Fail if the certificate is not present in the indicated location on the client host.
   </dd>
 
-  <dt><code>monetdbs://mdb.example.com/demo?certhash={sha256}fb6720aa009f334c</code>
+  <dt><code>monetdbs://mdb.example.com/demo?certhash={sha256}fb6720aa009f334c</code></dt>
   <dd>
     Connect to mdb.example.com, secure the connection with TLS.  Do not
     verify the certificate chain but require the hash of the certificate to start with the given
@@ -98,8 +124,6 @@ TODO field / property / attribute be consistent
     Note: this syntax departs from the old URL syntax, where it would be
     <code>mapi:monet:///var/monetdb/_sock?database=demo</code>.
   </dd>
-
-</dl>
 
 
 ## Parameters
@@ -128,7 +152,7 @@ existing settings specific to monetdb-jdbc.
 | --------------- | ------- | ----------- | --------------------------------------------------------------------------------------- |
 | **tls**         | bool    | false       | (core) secure the connection using TLS                                                  |
 | **host**        | string  | ""          | (core) IP number, domain name or one of the special values `localhost` and `localhost.` |
-| **port**        | integer | 50000       | (core) TCP port, also used to pick Unix Domain socket path                              |
+| **port**        | integer | not present | (core) integer TCP port, also used to pick Unix Domain socket path                      |
 | **database**    | string  | ""          | (core) name of database to connect to                                                   |
 | **tableschema** | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
 | **table**       | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
@@ -151,13 +175,17 @@ existing settings specific to monetdb-jdbc.
 | **debug**       | bool    | unspecified | specific to jdbc                                                                        |
 | **logfile**     | string  | unspecified | specific to jdbc                                                                        |
 
-The rules for interpreting parameter **host** are complicated and described in the
-next sections.
+The rules for interpreting parameter **host** are complicated and are
+described in the next sections.
+
+The default value for parameter **port** is listed 'not present'.
+Implementations MAY use an otherwise illegal value to represent this, such as
+0 or -1, but they SHOULD never allow the user to set it to this value.
 
 Some default values have been left unspecified because they vary between the
 existing implementations. The most problematic of these are **user** and
 **password**, which sometimes default to monetdb/monetdb and sometimes to
-the empty string / not present.
+no value.
 
 Parameter **fetchsize** is a true alias for **replysize**. This means that
 whenever an implementation encounters **fetchsize**, it should treat it as
@@ -203,13 +231,14 @@ apply:
 
 4. As described in [Section](#parameters), **fetchsize** MUST be treated as an
    alias of **replysize**. If within one source, the parameters have an order,
-   such as in a URL, the last occurrence (of either) wins. If there is no order,
-   such as in a Java Properties object, **replysize** takes precedence over
+   such as in a URL, the last occurrence (of either) SHOULD win. If there is no order,
+   such as in a Java Properties object, **replysize** SHOULD take precedence over
    **fetchsize**.
 
 5. If the source is a URL, all of **tls**, **host**, **port** and **database** MUST
-   be set. If not specified in the URL, for example, `monetdb:///`, the default
-   values must be used. This does not necessarily apply to other sources.
+   be set. If not specified in the URL, as for example in `monetdb:///`, they
+   should be reset to their default.
+   This does not necessarily apply to other sources.
 
 
 ## URL Syntax
@@ -226,11 +255,22 @@ The `monetdb:` scheme component maps to connection parameter `tls=off`.
 The `monetdbs:` scheme component maps to `tls=on`.
 The `monetdbe:` scheme is not covered by this version of the specification.
 
-The host, port, database, tableschema and table fields map directly to the
-corresponding connection parameters. The latter three MUST be percent-decoded
-first ([RFC3986 Section 2.1][rfc3986percent]).
+The host, port, database, tableschema and table fields map to the corresponding
+connection parameters. The latter three MUST be percent-decoded first ([RFC3986
+Section 2.1][rfc3986percent]). Fields that are not present are mapped to empty
+strings or in the case of port, to however 'not present' is encoded.
+
+If the host field is equal to 'localhost' (without period), the **host**
+parameter MUST be cleared. If the host field is equal to 'localhost.' (with
+period), the **host** parameter MUST be set to 'localhost' (without period).
+
+The latter rule is necessary because some URL parsing libraries do not accept a
+port number without a host name. This way, 'localhost' can stand in for 'host
+not set' and 'localhost.' can stand in for 'localhost'. Note that this is only
+in the URL.
 
 The port number must be positive and at most 65535.
+In particular it cannot be 0 or -1.
 
 Boolean values can be written as on/off, yes/no or true/false. Case does not matter.
 
@@ -252,7 +292,7 @@ Implementations MUST understand the square brackets IPv6-literal syntax
 `monetdb://[2001::2a]:12345/demo` MUST be parsed even if they underlying
 platform does not support IPv6.
 
-According to RFC 3986, IPv4 and IPv6 addresses are not
+According to RFC 3986, IPv4 and IPv6 addresses are not supposed to be
 percent-encoded but regular host names are. In MonetDB URLs however,
 if an implementation encounters a percent-encoded IP number, it MAY
 decode and accept it, but it MAY also reject it, whatever is more convenient.
@@ -269,23 +309,23 @@ parameters satisfy the following constraints.
 1. The parameters have the types listed in the table in [Section
    Parameters](#parameters).
 
-2. If **sock** and **host** are both not empty, **host** must be equal
-   to `localhost`.
+2. At least one of **sock** and **host** must be empty.
 
 3. The string parameter **binary** must either parse as a boolean or as a
    non-negative integer.
 
 4. If **sock** is not empty, **tls** must be 'off'.
 
-5. If **certhash** is not empty, it must be of the form
-   `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
-   and hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
+5. If **certhash** is not empty, it must be of the form `{sha256}hexdigits`
+   where hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
 
-6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
+6. If **tls** is 'off', **cert** and **certhash** must be 'off' as well.
 
 7. Parameters **database**, **tableschema** and **table** must consist only of
    upper- and lowercase letters, digits, dashes and underscores. They must not
    start with a dash.
+
+8. Parameter **port**, if present, must be in the range 1-65535.
 
 TODO BEFORE 0.9: figure out exactly where in the source
 the name constraints on databases are defined.
@@ -294,15 +334,17 @@ I only found something in merovingian.
 Based on the given parameters, the implementation should compute a number of
 'virtual' parameters.
 
+* Virtual parameter **connect_scan** is true if and only if **sock**, **host**
+  and **port** are all empty/not present, and **tls** is 'off'.
+
 * Virtual parameter **connect_unix** (a path) indicates whether to try to
   connect over a Unix domain socket, and if so, where. Take the first
   alternative that applies:
 
   1. if **sock** is not empty, **connect_unix** has that value.
   2. otherwise, if **tls** is True, **connect_unix** is empty.
-  3. otherwise, if **host** is either empty or exactly equal to 'localhost' (without a trailing period),
-     **connect_unix** is derived from the port number as follows:
-     <code>/tmp/.s.monetdb.<b>port</b></code>.
+  3. otherwise, if **host** is empty, **connect_unix** is derived from the port
+     number as follows: <code>/tmp/.s.monetdb.<b>port</b></code>.
   4. otherwise, **connect_unix** is empty.
 
 * Virtual parameter **connect_tcp** (a host name or ip number) indicates whether
@@ -311,9 +353,15 @@ Based on the given parameters, the implementation should compute a number of
   them all.
 
   1. if **sock** is not empty, **connect_tcp** is empty.
-  2. otherwise, if **host** is either empty or exactly equal to 'localhost.' (with a trailing
-     period), **connect_tcp** is 'localhost'.
+  2. otherwise, if **host** is empty, **connect_tcp** is 'localhost'.
   3. otherwise, **connect_tcp** is equal to **host**.
+
+* Virtual parameter **connect_port** indicates the port to try to connect to over TCP.
+
+  1. if **connect_tcp** is empty, **connect_port** is -1, chosen as an arbitrary
+     value that should not be used except for testing.
+  2. if **port** is not present, **connect_port** is 50000.
+  3. otherwise, **connect_port** has the value of **port**.
 
 * Virtual parameter **connect_tls_verify** indicates how to verify the TLS
   certificate of the server.
@@ -323,22 +371,13 @@ Based on the given parameters, the implementation should compute a number of
   3. otherwise, if **cert** is not empty, **connect_tls_verify** is 'cert'.
   4. otherwise, **connect_tls_verify** is 'system'.
 
-* Virtual parameter **connect_certhash_algo** indicates which hash algorithm
-  to use when **connect_tls_verify** is 'hash'.
-
-  1. if **certhash** starts with '{sha1}' (case insensitive),
-     **connect_certhash_algo** is 'sha1'.
-  2. if **certhash** starts with '{sha256}' (case insensitive),
-     **connect_certhash_algo** is 'sha256'.
-  3. otherwise, **connect_certhash_algo** is 'sha1'.
-
 * Virtual parameter **connect_certhash_digits** gives the hexdigits to
   compare to, with colons stripped.
 
-  1. if **tls** is 'off' or **certhash** is empty, **connect_certhash_algo** is
+  1. if **tls** is 'off' or **certhash** is empty, **connect_certhash_digits** is
      empty.
   2. otherwise, certhash is the value of **certhash** in lowercase, with the
-     brace prefix and all colons stripped.
+     hash name prefix and all colons stripped.
 
 * Virtual parameter **connect_binary** (an integer) is the interpretation of the
   string parameter **binary**
@@ -351,32 +390,36 @@ Based on the given parameters, the implementation should compute a number of
 
 ## Connecting
 
-The procedure for establishing a connection is given below. If the server sends a
-redirect, multiple iterations may be necessary.
+The procedure for establishing a connection is given below. In many cases, multiple
+iterations are necessary.
 
 In combination with the way the virtual parameters are computed in the previous
 section, this procedure is intended to be identical to the one described in the
 [comment at the start of `mapi_reconnect` in mapi.c][mapi_reconnect]
-in the MonetDB source code, with the exception of 'localhost.' with the trailing period
-meaning 'TCP-only'.
+in the MonetDB source code.
 
 [mapi_reconnect]: https://github.com/MonetDB/MonetDB/blob/d1ac6fe66bf095e17c40a863acc348bdb4aceb93/clients/mapilib/mapi.c#L2264-L2284
 
-1. Validate the parameters as described in the previous section.
+1. Validate the parameters and compute virtual parameters as described in the
+   previous section.
 
-2. If Unix domain sockets are supported and  **connect_unix** is not empty, try to
+2. If **connect_scan** is true, follow the procedure described in [Scanning Unix
+   domain socket](#scanning-unix-domain-sockets) instead of the procedure in this
+   section.
+
+3. If Unix domain sockets are supported and  **connect_unix** is not empty, try to
    establish a connection to socket **connect_unix**. If this succeeds, skip the
    next step. If it fails, remember the error message and continue with the next
    step.
 
-3. If **connect_tcp** is not empty, try to establish a TCP connection to port
-   **port** on that host. Note that the given host name may map to more than one
-   IP, and a mix of IPv4 and IPv6 addresses.
+4. If **connect_tcp** is not empty, try to establish a TCP connection to port
+   **connect_port** on that host. This may involve more than one attempt because
+   a host name often maps to more than one IP address.
 
-4. If an error occurred, abort with this error message. Otherwise, continue with
+5. If an error has occurred, abort with that error message. Otherwise, continue with
    the next step.
 
-5. If **tls** is enabled, perform a TLS handshake.
+6. If **tls** is enabled, perform a TLS handshake.
 
     * If **clientkey** is not empty, load the private key and possibly certificate chain
       from that file.
@@ -384,8 +427,8 @@ meaning 'TCP-only'.
       Offer them to the server as a client certificate. Abort with
       an error if key or certificates cannot be read.
 
-    * If **connect_tls_verify** is 'hash', compute the digest of the certificate
-      offered by the server using algorithm **connect_certhash_algo**.
+    * If **connect_tls_verify** is 'hash', compute the SHA-256 digest of the certificate
+      offered by the server.
       Convert it to lowercase hex digits and abort if this does not start with
       **connect_certhash_digits**.
 
@@ -401,7 +444,7 @@ meaning 'TCP-only'.
       against the platforms trusted root certificate store and abort if this
       fails.
 
-6. Perform a MAPI login using **user**, **password**, **database** and
+7. Perform a MAPI login using **user**, **password**, **database** and
    **language**. Use dummy values for **user** and **password** if the server
    announces itself as 'merovingian' rather than 'mserver'.
 
@@ -414,9 +457,31 @@ meaning 'TCP-only'.
       source in the sense of [Section Combining multiple
       sources](#combining-multiple-sources) and start over at Step 1.
 
-7. Further configure the connection using **autocommit**, **timezone**, **replysize**
+8. Further configure the connection using **autocommit**, **timezone**, **replysize**
    and **schema**. If binary is supported, combine **connect_binary** with the binary
    level advertised by the server and remember the minimum for later use.
+
+
+### Scanning Unix domain sockets
+
+When connecting to `monetdb:///dbname`, that is, with **database** set, **host**
+and **port** unset and **tls** off, special behavior kicks in, very succinctly
+described in [the comment in mapi.c][mapi_reconnect]:
+
+1. The implementation scans /tmp for sockets with names of the form
+   <code>/tmp/.s.monetdb.<b>port</b></code>, with <code><b>port</b></code> a
+   valid port number. It also notes the owning uid of those sockets.
+
+2. The implementation orders the socket found in such a way sockets that are
+   owned by the current process come before sockets that are not.
+
+3. Then, for each socket in turn, the implementation tries to connect using the
+   procedure listed in [Section Connecting](#connecting), with **sock** updated
+   to the socket in question.The first connection which fully succeeds,
+   including mapi handshake, is returned.
+
+4. If no connection attempt succeeded, the implementation now tries
+   to connect with **host** set to 'localhost' and **port** set to 50000.
 
 
 ## Parsing classic mapi:monetdb: URLs
