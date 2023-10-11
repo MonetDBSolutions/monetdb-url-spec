@@ -14,7 +14,7 @@ SPEC = os.path.join(os.path.dirname(__file__), 'monetdb-url.md')
 
 ALSO_ALLOW = [
     'connect_unix', 'connect_tcp', 'connect_port', 'connect_scan',
-    'connect_tls_verify', 'connect_certhash_algo', 'connect_certhash_digits',
+    'connect_tls_verify', 'connect_certhash_digits',
     'connect_binary',
     'param1', 'param2', 'value1', 'value2',
 ]

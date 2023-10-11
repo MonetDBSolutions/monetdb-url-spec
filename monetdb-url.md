@@ -40,24 +40,24 @@ TODO BEFORE 0.9: field / property / attribute be consistent
     On Windows, no equivalent for /tmp has been defined so only TCP is tried.
   </dd>
 
-  <dt><code>monetdb://localhost/demo</dt>
+  <dt><code>monetdb://localhost/demo</code></dt>
   <dd>
     Identical to the above. This is because many URL parsers do not allow a port
     number if no host is given, so 'localhost' is treated as 'no host'.
   </dd>
 
-  <dt><code>monetdb://localhost./demo</dt>
+  <dt><code>monetdb://localhost./demo</code></dt>
   <dd>
     Try to make a TCP connection to localhost, port 50000.
     So, if you really mean 'localhost', write 'localhost.' with a trailing period.
   </dd>
 
-  <dt><code>monetdb://localhost.:12345/demo</dt>
+  <dt><code>monetdb://localhost.:12345/demo</code></dt>
   <dd>
     Same as above, but port 12345.
   </dd>
 
-  <dt><code>monetdb://localhost:12345/demo</dt>
+  <dt><code>monetdb://localhost:12345/demo</code></dt>
   <dd>
     This is 'localhost' without the trailing period.
     First, try to connect to Unix domain socket /tmp/.s.monetdb.12345.
@@ -104,6 +104,14 @@ TODO BEFORE 0.9: field / property / attribute be consistent
     authenticate the server.
   </dd>
 
+  <dt><code>monetdbs:///demo</code></dt>
+  <dd>
+    Where <code>monetdb:///demo</code> caused a complicated scanning procedure,
+    <code>monetdbs:///demo</code> is always a simple TCP connection.
+    This is because TLS is not compatible with the way MonetDB uses Unix domain
+    sockets.
+  </dd>
+
   <dt><code>monetdbs://mdb.example.com/demo?cert=/home/user/server.crt</code></dt>
   <dd>
     Connect to mdb.example.com.
@@ -111,11 +119,12 @@ TODO BEFORE 0.9: field / property / attribute be consistent
     Fail if the certificate is not present in the indicated location on the client host.
   </dd>
 
-  <dt><code>monetdbs://mdb.example.com/demo?certhash={sha256}fb6720aa009f334c</code></dt>
+  <dt><code>monetdbs://mdb.example.com/demo?certhash={sha256}fb:67:20:aa:00:9f:33:4c</code></dt>
   <dd>
     Connect to mdb.example.com, secure the connection with TLS.  Do not
-    verify the certificate chain but require the hash of the certificate to start with the given
-    hexadecimal digits. The hash algorithm is given between braces.
+    verify the certificate chain but require the hash of the certificate to start with the given hexadecimal digits.
+    The hash algorithm (always SHA-256) is given between braces.
+    The colons are optional.
   </dd>
 
   <dt><code>monetdb:///demo?sock=/var/monetdb/_sock&user=dbuser</code></dt>

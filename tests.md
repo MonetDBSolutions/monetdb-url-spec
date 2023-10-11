@@ -36,10 +36,7 @@ the spec, all 'virtual parameters' and also the special case `valid` which is a
 boolean indicating whether all validity rules in section 'Interpreting the
 parameters' hold.
 
-Note: an `EXPECT` of the virtual parameters implies `EXPECT valid=true`,
-as do `ACCEPT` and `REJECT`. In the case of `ACCEPT`, `valid` must be true.
-In the case of `REJECT`, if the URL is syntactically correct but `valid` is false,
-this is considered a succesful rejection of the URL.
+Note: an `EXPECT` of the virtual parameters implies `EXPECT valid=true`.
 
 TODO before 1.0 does the above explanation make sense?
 
@@ -47,40 +44,50 @@ TODO before 1.0 does the above explanation make sense?
 ## Tests from the examples
 
 ```test
-ACCEPT monetdb://localhost:50000/demo?user=monetdb&password=monetdb
-EXPECT connect_unix=/tmp/.s.monetdb.50000
-EXPECT connect_tcp=localhost
-EXPECT port=50000
-EXPECT tls=off
+ACCEPT monetdb:///demo
+EXPECT connect_scan=true
 EXPECT database=demo
-EXPECT user=monetdb
-EXPECT password=monetdb
 ```
 
 ```test
-ACCEPT monetdb:///demo
-EXPECT connect_unix=/tmp/.s.monetdb.50000
-EXPECT connect_tcp=localhost
-EXPECT port=50000
-EXPECT tls=off
+ACCEPT monetdb://localhost/demo
+EXPECT connect_scan=true
 EXPECT database=demo
 ```
 
 ```test
 ACCEPT monetdb://localhost./demo
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
-EXPECT port=50000
+EXPECT connect_port=50000
 EXPECT tls=off
 EXPECT database=demo
 ```
 
 ```test
-ACCEPT monetdb://localhost:50000/demo?user=monetdb&password=monetdb
-EXPECT connect_unix=/tmp/.s.monetdb.50000
+ACCEPT monetdb://localhost.:12345/demo
+EXPECT connect_scan=false
+EXPECT connect_unix=
 EXPECT connect_tcp=localhost
-EXPECT port=50000
+EXPECT connect_port=12345
 EXPECT tls=off
+EXPECT database=demo
+```
+
+```test
+ACCEPT monetdb://localhost:12345/demo
+EXPECT connect_scan=false
+EXPECT connect_unix=/tmp/.s.monetdb.12345
+EXPECT connect_tcp=localhost
+EXPECT connect_port=12345
+EXPECT tls=off
+EXPECT database=demo
+```
+
+```test
+ACCEPT monetdb:///demo?user=monetdb&password=monetdb
+EXPECT connect_scan=true
 EXPECT database=demo
 EXPECT user=monetdb
 EXPECT password=monetdb
@@ -88,27 +95,30 @@ EXPECT password=monetdb
 
 ```test
 ACCEPT monetdb://mdb.example.com:12345/demo
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=mdb.example.com
-EXPECT port=12345
+EXPECT connect_port=12345
 EXPECT tls=off
 EXPECT database=demo
 ```
 
 ```test
 ACCEPT monetdb://192.168.13.4:12345/demo
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=192.168.13.4
-EXPECT port=12345
+EXPECT connect_port=12345
 EXPECT tls=off
 EXPECT database=demo
 ```
 
 ```test
 ACCEPT monetdb://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:12345/demo
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=2001:0db8:85a3:0000:0000:8a2e:0370:7334
-EXPECT port=12345
+EXPECT connect_port=12345
 EXPECT tls=off
 EXPECT database=demo
 ```
@@ -116,26 +126,38 @@ EXPECT database=demo
 ```test
 ACCEPT monetdb://localhost/
 EXPECT connect_unix=/tmp/.s.monetdb.50000
+EXPECT connect_scan=false
 EXPECT connect_tcp=localhost
-EXPECT port=50000
 EXPECT tls=off
 EXPECT database=
 ```
 
 ```test
 ACCEPT monetdb://localhost
+EXPECT connect_scan=false
 EXPECT connect_unix=/tmp/.s.monetdb.50000
 EXPECT connect_tcp=localhost
-EXPECT port=50000
 EXPECT tls=off
 EXPECT database=
 ```
 
 ```test
 ACCEPT monetdbs://mdb.example.com/demo
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=mdb.example.com
-EXPECT port=50000
+EXPECT connect_port=50000
+EXPECT tls=on
+EXPECT connect_tls_verify=system
+EXPECT database=demo
+```
+
+```test
+ACCEPT monetdbs:///demo
+EXPECT connect_scan=false
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+EXPECT connect_port=50000
 EXPECT tls=on
 EXPECT connect_tls_verify=system
 EXPECT database=demo
@@ -143,9 +165,10 @@ EXPECT database=demo
 
 ```test
 ACCEPT monetdbs://mdb.example.com/demo?cert=/home/user/server.crt
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=mdb.example.com
-EXPECT port=50000
+EXPECT connect_port=50000
 EXPECT tls=on
 EXPECT connect_tls_verify=cert
 EXPECT cert=/home/user/server.crt
@@ -154,53 +177,20 @@ EXPECT database=demo
 
 ```test
 ACCEPT monetdbs://mdb.example.com/demo?certhash={sha256}fb:67:20:aa:00:9f:33:4c
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=mdb.example.com
-EXPECT port=50000
+EXPECT connect_port=50000
 EXPECT tls=on
 EXPECT connect_tls_verify=hash
 EXPECT certhash={sha256}fb:67:20:aa:00:9f:33:4c
-EXPECT connect_certhash_algo=sha256
 EXPECT connect_certhash_digits=fb6720aa009f334c
 EXPECT database=demo
 ```
 
 ```test
-ACCEPT monetdbs://mdb.example.com/demo?certhash={sha256}A::B
-EXPECT connect_certhash_algo=sha256
-EXPECT connect_certhash_digits=ab
-```
-
-```test
-ACCEPT monetdbs://mdb.example.com/demo?certhash={sHA256}A::B
-EXPECT connect_certhash_algo=sha256
-EXPECT connect_certhash_digits=ab
-```
-
-```test
-ACCEPT monetdbs://mdb.example.com/demo?certhash={sHA1}A::B
-EXPECT connect_certhash_algo=sha1
-EXPECT connect_certhash_digits=ab
-```
-
-```test
-ACCEPT monetdbs://mdb.example.com/demo?certhash=A::B
-EXPECT connect_certhash_algo=sha1
-EXPECT connect_certhash_digits=ab
-```
-
-```test
-REJECT monetdbs://mdb.example.com/demo?certhash={sha1}
-REJECT monetdbs://mdb.example.com/demo?certhash={sha256}
-REJECT monetdbs://mdb.example.com/demo?certhash=X
-REJECT monetdbs://mdb.example.com/demo?certhash={sha1}X
-REJECT monetdbs://mdb.example.com/demo?certhash={sha99}X
-REJECT monetdbs://mdb.example.com/demo?certhash={X
-REJECT monetdbs://mdb.example.com/demo?certhash={banana}abcdef
-```
-
-```test
 ACCEPT monetdb:///demo?sock=/var/monetdb/_sock&user=dbuser
+EXPECT connect_scan=false
 EXPECT connect_unix=/var/monetdb/_sock
 EXPECT connect_tcp=
 EXPECT tls=off
@@ -208,6 +198,7 @@ EXPECT database=demo
 EXPECT user=dbuser
 EXPECT password=
 ```
+
 
 ## Parameter tests
 
@@ -263,7 +254,7 @@ EXPECT fetchsize=123
 ```test
 EXPECT tls=false
 EXPECT host=
-EXPECT port=50000
+EXPECT port=
 EXPECT database=
 EXPECT tableschema=
 EXPECT table=
@@ -271,7 +262,7 @@ EXPECT table=
 
 ### sock
 
-Nowhere supported on Windows, but they should *parse*!
+Not supported on Windows, but they should still parse.
 
 ```test
 EXPECT sock=
@@ -295,14 +286,34 @@ EXPECT cert=C:\TEMP\cert.pem
 
 ```test
 EXPECT certhash=
-ACCEPT monetdbs:///?certhash={sha1}001122ff
-ACCEPT monetdbs:///?certhash={sha1}00:11:22:ff
 ACCEPT monetdbs:///?certhash={sha256}001122ff
-ACCEPT monetdbs:///?certhash=001122ff
-REJECT monetdbs:///?certhash=sha1:001122ff
-REJECT monetdbs:///?certhash={sha1}}001122gg
+ACCEPT monetdbs:///?certhash={sha256}00:11:22:ff
+ACCEPT monetdbs:///?certhash={sha256}::::aa::ff:::::
 ACCEPT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-REJECT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8550
+```
+
+This string of hexdigits is longer than the length of a SHA-256 digest.
+It still parses, it will just never match.
+
+```test
+ACCEPT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8550
+```
+
+```test
+REJECT monetdbs:///?certhash=001122ff
+REJECT monetdbs:///?certhash={Sha256}001122ff
+REJECT monetdbs:///?certhash=sha256:001122ff
+REJECT monetdbs:///?certhash={sha256}001122gg
+REJECT monetdbs:///?certhash={sha256}}001122
+REJECT monetdbs:///?certhash={{sha256}001122
+REJECT monetdbs:///?certhash={{sha256}
+REJECT monetdbs:///?certhash={sha
+REJECT monetdbs:///?certhash={sha1}aabbcc
+REJECT monetdbs:///?certhash={sha1}
+REJECT monetdbs:///?certhash={sha1}X
+REJECT monetdbs:///?certhash={sha99}aabbcc
+REJECT monetdbs:///?certhash={sha99}
+REJECT monetdbs:///?certhash={sha99}X
 ```
 
 ### clientkey, clientcert
@@ -314,6 +325,7 @@ EXPECT clientkey=/tmp/clientkey.pem
 ACCEPT monetdbs:///?clientkey=C:\TEMP\clientkey.pem
 EXPECT clientkey=C:\TEMP\clientkey.pem
 ```
+
 ### clientcert
 
 ```test
@@ -540,7 +552,7 @@ SET timezone=120
 ACCEPT monetdb:///
 EXPECT tls=off
 EXPECT host=
-EXPECT port=50000
+EXPECT port=
 EXPECT database=
 ```
 
@@ -553,7 +565,7 @@ SET timezone=120
 ACCEPT monetdb://dbhost/dbdb
 EXPECT tls=off
 EXPECT host=dbhost
-EXPECT port=50000
+EXPECT port=
 EXPECT database=dbdb
 ```
 
@@ -575,7 +587,7 @@ EXPECT user=mathison
 EXPECT password=
 ```
 
-The rule is, "if **user** set", not "if **user** is changed".
+The rule is, "if **user** is set", not "if **user** is changed".
 
 ```test
 SET user=alan
@@ -592,6 +604,8 @@ General form
 ```test
 ACCEPT monetdb://
 ACCEPT monetdbs://
+ACCEPT monetdb:///
+ACCEPT monetdbs:///
 REJECT monetdb:/
 REJECT monetdbs:/
 REJECT monetdb:
@@ -712,101 +726,46 @@ REJECT monetdb:///m%xxbad
 Testing the validity constraints.
 They apply both when parsing a URL and with ad-hoc settings.
 
-The type constraints have already been tested above.
+Rule 1, the type constraints, has already been tested in [Section Parameter
+tests](#parameter-tests).
 
-The following tests check the interaction between **tls**, **host** and **sock**.
+Rule 2, interaction between **sock** and **host** is tested below in
+[the next subsection](#interaction-between-tls-host-sock-and-database).
 
-```test
-ACCEPT monetdb:///
-EXPECT connect_unix=/tmp/.s.monetdb.50000
-EXPECT connect_tcp=localhost
-```
+Rule 3, about **binary**, is tested in [Subsection Binary](#binary).
 
-```test
-ACCEPT monetdb:///?sock=/a/path
-EXPECT connect_unix=/a/path
-EXPECT connect_tcp=
-```
+Rule 4, **sock** vs **tls** is tested below in [the next
+subsection](#interaction-between-tls-host-sock-and-database).
 
-```test
-ACCEPT monetdb://localhost/
-EXPECT connect_unix=/tmp/.s.monetdb.50000
-EXPECT connect_tcp=localhost
-```
+Rule 5, **certhash** syntax, is tested in [Subsection Certhash](#certhash).
 
-```test
-ACCEPT monetdb://localhost/?sock=/a/path
-EXPECT connect_unix=/a/path
-EXPECT connect_tcp=
-```
+Rule 6, **tls** **cert** **certhash** interaction, is tested
+in [Subsection Interaction between tls, cert and certhash](#interaction-between-tls-cert-and-certhash).
+
+Rule 7, **database**, **tableschema**, **table** is tested in [Subsection
+Database, schema, table name
+constraints](#database-schema-table-name-constraints).
+
+Here are some tests for Rule 8, **port**.
 
 ```test
-ACCEPT monetdb://localhost./
-EXPECT connect_unix=
-EXPECT connect_tcp=localhost
+SET port=1
+EXPECT valid=true
+SET port=10
+EXPECT valid=true
+SET port=000010
+EXPECT valid=true
+SET port=65535
+EXPECT valid=true
+SET port=0
+EXPECT valid=false
+SET port=-1
+EXPECT valid=false
+SET port=65536
+EXPECT valid=false
 ```
 
-```test
-REJECT monetdb://localhost./?sock=/a/path
-```
-
-```test
-ACCEPT monetdb://not.localhost/
-EXPECT connect_unix=
-EXPECT connect_tcp=not.localhost
-```
-
-```test
-REJECT monetdb://not.localhost/?sock=/a/path
-```
-
-```test
-ACCEPT monetdbs:///
-EXPECT connect_unix=
-EXPECT connect_tcp=localhost
-```
-
-```test
-REJECT monetdbs:///?sock=/a/path
-```
-
-```test
-ACCEPT monetdbs://localhost/
-EXPECT connect_unix=
-EXPECT connect_tcp=localhost
-```
-
-```test
-REJECT monetdbs://localhost/?sock=/a/path
-```
-
-```test
-ACCEPT monetdbs://localhost./
-EXPECT connect_unix=
-EXPECT connect_tcp=localhost
-```
-
-```test
-REJECT monetdbs://localhost./?sock=/a/path
-```
-
-```test
-ACCEPT monetdbs://not.localhost/
-EXPECT connect_unix=
-EXPECT connect_tcp=not.localhost
-```
-
-```test
-REJECT monetdbs://not.localhost/?sock=/a/path
-```
-
-```test
-ACCEPT monetdbs:///?cert=/a/path
-ACCEPT monetdbs:///?certhash={sha256}aa
-ACCEPT monetdbs:///?cert=/a/path&certhash={sha256}aa
-REJECT monetdb:///?cert=/a/path
-REJECT monetdb:///?certhash={sha256}aa
-```
+### Database, schema, table name constraints
 
 ```test
 SET database=
@@ -898,6 +857,19 @@ SET table=with?questionmark
 EXPECT valid=no
 ```
 
+### Interaction between tls, cert and certhash
+
+```test
+ACCEPT monetdbs:///?cert=/a/path
+EXPECT connect_tls_verify=cert
+ACCEPT monetdbs:///?certhash={sha256}aa
+EXPECT connect_tls_verify=hash
+ACCEPT monetdbs:///?cert=/a/path&certhash={sha256}aa
+EXPECT connect_tls_verify=hash
+REJECT monetdb:///?cert=/a/path
+REJECT monetdb:///?certhash={sha256}aa
+```
+
 ```test
 SET tls=off
 SET cert=
@@ -960,7 +932,204 @@ EXPECT connect_tls_verify=hash
 ```
 
 
-# Legacy URL's
+### Interaction between tls, host, sock and database
+
+The following tests should exhaustively test all variants.
+
+```test
+ACCEPT monetdb:///
+EXPECT connect_scan=off
+EXPECT connect_unix=/tmp/.s.monetdb.50000
+EXPECT connect_tcp=localhost
+```
+
+```test
+ACCEPT monetdb:///?sock=/a/path
+EXPECT connect_scan=off
+EXPECT connect_unix=/a/path
+EXPECT connect_tcp=
+```
+
+```test
+ACCEPT monetdb://localhost/
+EXPECT connect_scan=off
+EXPECT connect_unix=/tmp/.s.monetdb.50000
+EXPECT connect_tcp=localhost
+```
+
+```test
+ACCEPT monetdb://localhost/?sock=/a/path
+EXPECT connect_scan=off
+EXPECT connect_unix=/a/path
+EXPECT connect_tcp=
+```
+
+```test
+ACCEPT monetdb://localhost./
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdb://localhost./?sock=/a/path
+```
+
+```test
+ACCEPT monetdb://not.localhost/
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=not.localhost
+```
+
+```test
+REJECT monetdb://not.localhost/?sock=/a/path
+```
+
+```test
+ACCEPT monetdbs:///
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdbs:///?sock=/a/path
+EXPECT connect_scan=off
+```
+
+```test
+ACCEPT monetdbs://localhost/
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdbs://localhost/?sock=/a/path
+EXPECT connect_scan=off
+```
+
+```test
+ACCEPT monetdbs://localhost./
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdbs://localhost./?sock=/a/path
+EXPECT connect_scan=off
+```
+
+```test
+ACCEPT monetdbs://not.localhost/
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=not.localhost
+```
+
+```test
+REJECT monetdbs://not.localhost/?sock=/a/path
+EXPECT connect_scan=off
+```
+
+```test
+ACCEPT monetdb:///demo
+EXPECT connect_scan=on
+```
+
+```test
+ACCEPT monetdb:///demo?sock=/a/path
+EXPECT connect_scan=off
+EXPECT connect_unix=/a/path
+EXPECT connect_tcp=
+```
+
+```test
+ACCEPT monetdb://localhost/demo
+EXPECT connect_scan=on
+```
+
+```test
+ACCEPT monetdb://localhost/demo?sock=/a/path
+EXPECT connect_scan=off
+EXPECT connect_unix=/a/path
+EXPECT connect_tcp=
+```
+
+```test
+ACCEPT monetdb://localhost./demo
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdb://localhost./?sock=/a/path
+```
+
+```test
+ACCEPT monetdb://not.localhost/demo
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=not.localhost
+```
+
+```test
+REJECT monetdb://not.localhost/?sock=/a/path
+```
+
+```test
+ACCEPT monetdbs:///demo
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdbs:///?sock=/a/path
+EXPECT connect_scan=off
+```
+
+```test
+ACCEPT monetdbs://localhost/demo
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdbs://localhost/?sock=/a/path
+EXPECT connect_scan=off
+```
+
+```test
+ACCEPT monetdbs://localhost./demo
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=localhost
+```
+
+```test
+REJECT monetdbs://localhost./?sock=/a/path
+EXPECT connect_scan=off
+```
+
+```test
+ACCEPT monetdbs://not.localhost/demo
+EXPECT connect_scan=off
+EXPECT connect_unix=
+EXPECT connect_tcp=not.localhost
+```
+
+```test
+REJECT monetdbs://not.localhost/?sock=/a/path
+EXPECT connect_scan=off
+```
+
+
+## Legacy URL's
 
 ```test
 REJECT mapi:

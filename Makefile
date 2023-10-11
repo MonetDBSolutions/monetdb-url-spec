@@ -15,7 +15,7 @@ clean:
 
 check:
 	python3 check.py
-	markdownlint-cli2 monetdb-url.md
+	markdownlint-cli2 monetdb-url.md tests.md
 	echo
 
 testpy:
