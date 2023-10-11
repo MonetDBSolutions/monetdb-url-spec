@@ -169,9 +169,9 @@ class TargetTests(TestCase):
                 target.validate()
                 if not should_succeed:
                     self.fail("Expected valid=false")
-            except ValueError:
+            except ValueError as e:
                 if should_succeed:
-                    self.fail("Expected valid=true")
+                    self.fail(f"Expected valid=true, got error {e}")
             return
 
         if key in VIRTUAL:

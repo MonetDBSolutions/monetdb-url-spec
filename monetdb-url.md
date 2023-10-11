@@ -161,7 +161,7 @@ existing settings specific to monetdb-jdbc.
 | --------------- | ------- | ----------- | --------------------------------------------------------------------------------------- |
 | **tls**         | bool    | false       | (core) secure the connection using TLS                                                  |
 | **host**        | string  | ""          | (core) IP number, domain name or one of the special values `localhost` and `localhost.` |
-| **port**        | integer | not present | (core) integer TCP port, also used to pick Unix Domain socket path                      |
+| **port**        | integer | -1          | (core) Port to connect to, 1..65535 or -1 for 'not set'                                 |
 | **database**    | string  | ""          | (core) name of database to connect to                                                   |
 | **tableschema** | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
 | **table**       | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
@@ -186,10 +186,6 @@ existing settings specific to monetdb-jdbc.
 
 The rules for interpreting parameter **host** are complicated and are
 described in the next sections.
-
-The default value for parameter **port** is listed 'not present'.
-Implementations MAY use an otherwise illegal value to represent this, such as
-0 or -1, but they SHOULD never allow the user to set it to this value.
 
 Some default values have been left unspecified because they vary between the
 existing implementations. The most problematic of these are **user** and
@@ -279,7 +275,6 @@ not set' and 'localhost.' can stand in for 'localhost'. Note that this is only
 in the URL.
 
 The port number must be positive and at most 65535.
-In particular it cannot be 0 or -1.
 
 Boolean values can be written as on/off, yes/no or true/false. Case does not matter.
 
@@ -334,7 +329,7 @@ parameters satisfy the following constraints.
    upper- and lowercase letters, digits, dashes and underscores. They must not
    start with a dash.
 
-8. Parameter **port**, if present, must be in the range 1-65535.
+8. Parameter **port** must be -1 or in the range 1-65535.
 
 TODO BEFORE 0.9: figure out exactly where in the source
 the name constraints on databases are defined.
@@ -343,8 +338,8 @@ I only found something in merovingian.
 Based on the given parameters, the implementation should compute a number of
 'virtual' parameters.
 
-* Virtual parameter **connect_scan** is true if and only if **sock**, **host**
-  and **port** are all empty/not present, and **tls** is 'off'.
+* Virtual parameter **connect_scan** is true if and only if **database** is not
+  empty, **sock**, **host** and **port** are all empty/-1, and **tls** is 'off'.
 
 * Virtual parameter **connect_unix** (a path) indicates whether to try to
   connect over a Unix domain socket, and if so, where. Take the first
@@ -353,7 +348,7 @@ Based on the given parameters, the implementation should compute a number of
   1. if **sock** is not empty, **connect_unix** has that value.
   2. otherwise, if **tls** is True, **connect_unix** is empty.
   3. otherwise, if **host** is empty, **connect_unix** is derived from the port
-     number as follows: <code>/tmp/.s.monetdb.<b>port</b></code>.
+     number as follows: <code>/tmp/.s.monetdb.<b>connect_port</b></code>.
   4. otherwise, **connect_unix** is empty.
 
 * Virtual parameter **connect_tcp** (a host name or ip number) indicates whether
@@ -367,10 +362,8 @@ Based on the given parameters, the implementation should compute a number of
 
 * Virtual parameter **connect_port** indicates the port to try to connect to over TCP.
 
-  1. if **connect_tcp** is empty, **connect_port** is -1, chosen as an arbitrary
-     value that should not be used except for testing.
-  2. if **port** is not present, **connect_port** is 50000.
-  3. otherwise, **connect_port** has the value of **port**.
+  1. if **port** is -1, **connect_port** is 50000.
+  2. otherwise, **connect_port** has the value of **port**.
 
 * Virtual parameter **connect_tls_verify** indicates how to verify the TLS
   certificate of the server.
@@ -490,7 +483,7 @@ described in [the comment in mapi.c][mapi_reconnect]:
    including mapi handshake, is returned.
 
 4. If no connection attempt succeeded, the implementation now tries
-   to connect with **host** set to 'localhost' and **port** set to 50000.
+   to connect with **host** set to 'localhost'.
 
 
 ## Parsing classic mapi:monetdb: URLs

@@ -254,7 +254,7 @@ EXPECT fetchsize=123
 ```test
 EXPECT tls=false
 EXPECT host=
-EXPECT port=
+EXPECT port=-1
 EXPECT database=
 EXPECT tableschema=
 EXPECT table=
@@ -552,7 +552,7 @@ SET timezone=120
 ACCEPT monetdb:///
 EXPECT tls=off
 EXPECT host=
-EXPECT port=
+EXPECT port=-1
 EXPECT database=
 ```
 
@@ -565,7 +565,7 @@ SET timezone=120
 ACCEPT monetdb://dbhost/dbdb
 EXPECT tls=off
 EXPECT host=dbhost
-EXPECT port=
+EXPECT port=-1
 EXPECT database=dbdb
 ```
 
@@ -757,9 +757,11 @@ SET port=000010
 EXPECT valid=true
 SET port=65535
 EXPECT valid=true
+SET port=-1
+EXPECT valid=true
 SET port=0
 EXPECT valid=false
-SET port=-1
+SET port=-2
 EXPECT valid=false
 SET port=65536
 EXPECT valid=false
@@ -881,7 +883,7 @@ EXPECT connect_tls_verify=
 ```test
 SET tls=off
 SET cert=
-SET certhash=abcdef
+SET certhash={sha256}abcdef
 EXPECT valid=no
 ```
 
@@ -895,7 +897,7 @@ EXPECT valid=no
 ```test
 SET tls=off
 SET cert=/foo
-SET certhash=abcdef
+SET certhash={sha256}abcdef
 EXPECT valid=no
 ```
 
@@ -910,7 +912,7 @@ EXPECT connect_tls_verify=system
 ```test
 SET tls=on
 SET cert=
-SET certhash=abcdef
+SET certhash={sha256}abcdef
 EXPECT valid=yes
 EXPECT connect_tls_verify=hash
 ```
@@ -926,7 +928,7 @@ EXPECT connect_tls_verify=cert
 ```test
 SET tls=on
 SET cert=/foo
-SET certhash=abcdef
+SET certhash={sha256}abcdef
 EXPECT valid=yes
 EXPECT connect_tls_verify=hash
 ```
@@ -995,7 +997,6 @@ EXPECT connect_tcp=localhost
 
 ```test
 REJECT monetdbs:///?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 ```test
@@ -1007,7 +1008,6 @@ EXPECT connect_tcp=localhost
 
 ```test
 REJECT monetdbs://localhost/?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 ```test
@@ -1019,7 +1019,6 @@ EXPECT connect_tcp=localhost
 
 ```test
 REJECT monetdbs://localhost./?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 ```test
@@ -1031,7 +1030,6 @@ EXPECT connect_tcp=not.localhost
 
 ```test
 REJECT monetdbs://not.localhost/?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 ```test
@@ -1089,7 +1087,6 @@ EXPECT connect_tcp=localhost
 
 ```test
 REJECT monetdbs:///?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 ```test
@@ -1101,7 +1098,6 @@ EXPECT connect_tcp=localhost
 
 ```test
 REJECT monetdbs://localhost/?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 ```test
@@ -1113,7 +1109,6 @@ EXPECT connect_tcp=localhost
 
 ```test
 REJECT monetdbs://localhost./?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 ```test
@@ -1125,7 +1120,6 @@ EXPECT connect_tcp=not.localhost
 
 ```test
 REJECT monetdbs://not.localhost/?sock=/a/path
-EXPECT connect_scan=off
 ```
 
 
@@ -1143,7 +1137,8 @@ This one is refused by mclient but accepted by pymonetdb:
 ```test
 ACCEPT mapi:monetdb://
 EXPECT host=
-EXPECT port=50000
+EXPECT port=-1
+EXPECT connect_scan=off
 EXPECT connect_unix=/tmp/.s.monetdb.50000
 EXPECT connect_tcp=localhost
 ```
@@ -1155,6 +1150,7 @@ EXPECT port=12345
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
+EXPECT connect_scan=off
 EXPECT connect_unix=
 EXPECT connect_tcp=monet.db
 ```
@@ -1163,46 +1159,46 @@ This one is the golden standard:
 
 ```test
 ACCEPT mapi:monetdb://localhost:12345/demo
-EXPECT host=localhost.
+EXPECT host=localhost
 EXPECT port=12345
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
+EXPECT connect_scan=off
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
 ```
 
 ```test
 ACCEPT mapi:monetdb://localhost:12345/
-EXPECT host=localhost.
+EXPECT host=localhost
 EXPECT port=12345
 EXPECT database=
 EXPECT tls=off
 EXPECT language=sql
+EXPECT connect_scan=off
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
 ```
 
 ```test
 ACCEPT mapi:monetdb://localhost:12345
-EXPECT host=localhost.
+EXPECT host=localhost
 EXPECT port=12345
 EXPECT database=
 EXPECT tls=off
 EXPECT language=sql
+EXPECT connect_scan=off
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
 ```
 
 ```test
 ACCEPT mapi:monetdb://localhost/demo
-EXPECT host=localhost.
-EXPECT port=50000
-EXPECT database=demo
-EXPECT tls=off
-EXPECT language=sql
+EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=localhost
+EXPECT connect_port=50000
 ```
 
 ```test
@@ -1212,6 +1208,7 @@ EXPECT port=12345
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
+EXPECT connect_scan=off
 EXPECT connect_unix=/tmp/.s.monetdb.12345
 EXPECT connect_tcp=localhost
 ```
@@ -1223,6 +1220,7 @@ EXPECT port=12345
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
+EXPECT connect_scan=off
 EXPECT connect_unix=
 EXPECT connect_tcp=127.0.0.1
 ```
@@ -1297,7 +1295,7 @@ Unix domain sockets
 ACCEPT mapi:monetdb:///path/to/sock?database=demo
 EXPECT host=
 EXPECT sock=/path/to/sock
-EXPECT port=50000
+EXPECT port=-1
 EXPECT database=demo
 EXPECT tls=off
 EXPECT language=sql
@@ -1309,7 +1307,7 @@ EXPECT connect_tcp=
 ACCEPT mapi:monetdb:///path/to/sock
 EXPECT host=
 EXPECT sock=/path/to/sock
-EXPECT port=50000
+EXPECT port=-1
 EXPECT database=
 EXPECT tls=off
 EXPECT language=sql
@@ -1366,7 +1364,7 @@ Language is supported
 ```test
 SET language=sql
 ACCEPT mapi:monetdb://localhost:12345?language=mal
-EXPECT host=localhost.
+EXPECT host=localhost
 EXPECT sock=
 EXPECT language=mal
 SET language=sql

@@ -24,8 +24,8 @@ KNOWN = set([
 )
 IGNORED = set(['hash', 'debug', 'logfile'])
 VIRTUAL = set([
-    'connect_unix', 'connect_tcp',
-    'connect_tls_verify', 'connect_certhash_algo', 'connect_certhash_digits',
+    'connect_scan', 'connect_unix', 'connect_tcp', 'connect_port',
+    'connect_tls_verify', 'connect_certhash_digits',
     'connect_binary'
 ])
 
@@ -41,7 +41,7 @@ _BOOLEANS = dict(
 _DEFAULTS = dict(
             tls=False,
             host="",
-            port=50_000,
+            port=-1,
             database="",
             tableschema="",
             table="",
@@ -200,7 +200,12 @@ class Target:
             raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
 
         if parsed.hostname is not None:
-            self.host = strict_percent_decode('host name', parsed.hostname)
+            host = strict_percent_decode('host name', parsed.hostname)
+            if host == 'localhost':
+                host = ''
+            elif host == 'localhost.':
+                host = 'localhost'
+            self.host = host
         if parsed.port is not None:
             port = parsed.port
             if port is not None and not 1 <= port <= 65535:
@@ -244,9 +249,7 @@ class Target:
             self.user = parsed.username
         if parsed.password is not None:
             self.password = parsed.password
-        if parsed.hostname == 'localhost':
-            self.host = 'localhost.' # !!!
-        elif parsed.hostname is not None:
+        if parsed.hostname is not None:
             self.host = parsed.hostname
         if parsed.port is not None:
             self.port = parsed.port
@@ -291,10 +294,9 @@ class Target:
         #
         # This has already been checked by the url_param magic.
 
-        # 2. If **sock** and **host** are both not empty, **host** must be equal
-        #    to `localhost`.
-        if self.sock and self.host and self.host != 'localhost':
-            raise ValueError("With sock=, host must be 'localhost'")
+        # 2. At least one of **sock** and **host** must be empty.
+        if self.sock and self.host:
+            raise ValueError("With sock=, host must be empty or 'localhost'")
 
         # 3. The string parameter **binary** must either parse as a boolean or as a
         #    non-negative integer.
@@ -307,14 +309,13 @@ class Target:
         if self.sock and self.tls:
             raise ValueError("TLS cannot be used with Unix domain sockets")
 
-        # 5. If **certhash** is not empty, it must be of the form
-        #    `hexdigits` or `{hashname}hexdigits` where hashname is 'sha1' or 'sha256'
-        #    and hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
+        # 5. If **certhash** is not empty, it must be of the form `{sha256}hexdigits`
+        #    where hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
         if self.certhash and not _HASH_PATTERN.match(self.certhash):
             raise ValueError("invalid certhash")
 
-        # 6. If **cert** or **certhash** are not empty, **tls** must be 'on'.
-        if (self.cert or self.certhash) and not self.tls:
+        # 6. If **tls** is 'off', **cert** and **certhash** must be 'off' as well.
+        if not self.tls and (self.cert or self.certhash):
             raise ValueError("'cert' and 'certhash' can only be used with monetdbs:")
 
         # 7. Parameters **database**, **tableschema** and **table** must consist only of
@@ -327,23 +328,43 @@ class Target:
         if self.table and not _DATABASE_PATTERN.match(self.table):
             raise ValueError(f"invalid table name {self.table!r}")
 
+        # 8. Parameter **port**, if present, must be in the range 1-65535.
+        if self.port != -1 and not 1 <= self.port <= 65535:
+            raise ValueError(f"Invalid port number: {self.port}")
+
+    @property
+    def connect_scan(self):
+        if not self.database:
+            return False
+        if self.sock or self.host or self.port != -1:
+            return False
+        if self.tls:
+            return False
+        return True
+
     @property
     def connect_unix(self):
         if self.sock:
             return self.sock
         if self.tls:
             return ""
-        if self.host == "" or self.host == 'localhost':
-            return f"/tmp/.s.monetdb.{self.port}"
+        if self.host == "":
+            return f"/tmp/.s.monetdb.{self.connect_port}"
         return ""
 
     @property
     def connect_tcp(self):
         if self.sock:
             return ""
-        if not self.host or self.host == "localhost.":
-            return "localhost"
-        return self.host
+        return self.host or "localhost"
+
+    @property
+    def connect_port(self):
+        assert self.port == -1 or 1 <= self.port <= 65535
+        if self.port == -1:
+            return 50000
+        else:
+            return self.port
 
     @property
     def connect_tls_verify(self):
@@ -366,23 +387,13 @@ class Target:
                 raise ValueError("invalid value for 'binary': {self.binary}, must be int or bool")
 
     @property
-    def connect_certhash_algo(self):
-        m = _HASH_PATTERN.match(self.certhash)
-        algo = m.group(1)
-        if algo is None:
-            return 'sha1'
-        else:
-            return algo.lower()
-
-    @property
     def connect_certhash_digits(self):
         m = _HASH_PATTERN.match(self.certhash)
-        return m.group(2).lower().replace(':', '')
+        return m.group(1).lower().replace(':', '')
 
 _UNQUOTE_PATTERN = re.compile(b"[%](.?.?)")
 _DATABASE_PATTERN = re.compile("^[A-Za-z0-9_][-A-Za-z0-9_]*$")
-_HASH_PATTERN = re.compile(r"^(?:[{](sha1|sha256)[}])?([0-9a-f:]{1,64})$", re.IGNORECASE)
-
+_HASH_PATTERN = re.compile(r"^[{]sha256[}]([0-9a-fA-F:]+)$")
 
 def _unquote_fun(m) -> bytes:
     digits = m.group(1)
