@@ -215,11 +215,11 @@ find(scanner *sc, const char *delims)
 }
 
 static bool
-store(mapi_params *mp, scanner *sc, mapiparm parm, const char *value)
+store(msettings *mp, scanner *sc, mparm parm, const char *value)
 {
-	mapi_params_error msg = mapi_param_from_text(mp, parm, value);
+	msettings_error msg = msetting_parse(mp, parm, value);
 	if (msg)
-		return complain(sc, "cannot set %s to '%s': %s",mapiparm_name(parm), value, msg);
+		return complain(sc, "cannot set %s to '%s': %s",mparm_name(parm), value, msg);
 	else
 		return true;
 }
@@ -239,7 +239,7 @@ scan_query_parameters(scanner *sc, char **key, char **value)
 }
 
 static bool
-parse_port(mapi_params *mp, scanner *sc) {
+parse_port(msettings *mp, scanner *sc) {
 	if (sc->c == ':') {
 		advance(sc);
 		char *portstr = scan(sc, generic_special);
@@ -247,7 +247,7 @@ parse_port(mapi_params *mp, scanner *sc) {
 		long port = strtol(portstr, &end, 10);
 		if (portstr[0] == '\0' || *end != '\0' || port < 1 || port > 65535)
 			return complain(sc, "invalid port: '%s'", portstr);
-		mapi_params_error msg = mapi_param_set_long(mp, CP_PORT, port);
+		msettings_error msg = msetting_set_long(mp, MP_PORT, port);
 		if (msg != NULL)
 			return complain(sc, "could not set port: %s\n", msg);
 	}
@@ -255,7 +255,7 @@ parse_port(mapi_params *mp, scanner *sc) {
 }
 
 static bool
-parse_path(mapi_params *mp, scanner *sc, bool percent)
+parse_path(msettings *mp, scanner *sc, bool percent)
 {
 	// parse the database name
 	if (sc->c != '/')
@@ -264,7 +264,7 @@ parse_path(mapi_params *mp, scanner *sc, bool percent)
 	char *database = scan(sc, generic_special);
 	if (percent && !percent_decode(sc, "database", database))
 		return false;
-	if (!store(mp, sc, CP_DATABASE, database))
+	if (!store(mp, sc, MP_DATABASE, database))
 		return false;
 
 	// parse the schema name
@@ -274,7 +274,7 @@ parse_path(mapi_params *mp, scanner *sc, bool percent)
 	char *schema = scan(sc, generic_special);
 	if (percent && !percent_decode(sc, "schema", schema))
 		return false;
-	if (!store(mp, sc, CP_TABLESCHEMA, schema))
+	if (!store(mp, sc, MP_TABLESCHEMA, schema))
 		return false;
 
 	// parse the table name
@@ -284,14 +284,14 @@ parse_path(mapi_params *mp, scanner *sc, bool percent)
 	char *table = scan(sc, generic_special);
 	if (percent && !percent_decode(sc, "table", table))
 		return false;
-	if (!store(mp, sc, CP_TABLE, table))
+	if (!store(mp, sc, MP_TABLE, table))
 		return false;
 
 	return true;
 }
 
 static bool
-parse_modern(mapi_params *mp, scanner *sc)
+parse_modern(msettings *mp, scanner *sc)
 {
 	if (!consume(sc, "//"))
 		return false;
@@ -305,7 +305,7 @@ parse_modern(mapi_params *mp, scanner *sc)
 		*sc->p = '\0';
 		if (!consume(sc, "]"))
 			return false;
-		if (!store(mp, sc, CP_HOST, host))
+		if (!store(mp, sc, MP_HOST, host))
 			return false;
 	} else {
 		char *host = scan(sc, generic_special);
@@ -319,7 +319,7 @@ parse_modern(mapi_params *mp, scanner *sc)
 			// cannot port number without host, so this is not allowed: monetdb://:50000
 			return unexpected(sc);
 		}
-		if (!store(mp, sc, CP_HOST, host))
+		if (!store(mp, sc, MP_HOST, host))
 			return false;
 	}
 
@@ -344,7 +344,7 @@ parse_modern(mapi_params *mp, scanner *sc)
 			if (!percent_decode(sc, key, value))
 				return false;
 
-			mapi_params_error msg = mapi_param_set_named(mp, false, key, value);
+			msettings_error msg = msetting_set_named(mp, false, key, value);
 			if (msg)
 				return complain(sc, "%s: %s", key, msg);
 		} while (sc->c == '&');
@@ -358,7 +358,7 @@ parse_modern(mapi_params *mp, scanner *sc)
 }
 
 static bool
-parse_classic_query_parameters(mapi_params *mp, scanner *sc)
+parse_classic_query_parameters(msettings *mp, scanner *sc)
 {
 	assert(sc->c == '?');
 	do {
@@ -368,12 +368,12 @@ parse_classic_query_parameters(mapi_params *mp, scanner *sc)
 		char *value;
 		if (!scan_query_parameters(sc, &key, &value))
 			return false;
-		mapiparm parm = mapiparm_parse(key);
-		mapi_params_error msg;
+		mparm parm = mparm_parse(key);
+		msettings_error msg;
 		switch (parm) {
-			case CP_DATABASE:
-			case CP_LANGUAGE:
-				msg = mapi_param_set_string(mp, parm, value);
+			case MP_DATABASE:
+			case MP_LANGUAGE:
+				msg = msetting_set_string(mp, parm, value);
 				if (msg)
 					return complain(sc, "parameter '%s': %s", key, msg);
 				break;
@@ -387,13 +387,13 @@ parse_classic_query_parameters(mapi_params *mp, scanner *sc)
 }
 
 static bool
-parse_classic_tcp(mapi_params *mp, scanner *sc)
+parse_classic_tcp(msettings *mp, scanner *sc)
 {
 	assert(sc->c != '/');
 
 	// parse the host
 	char *host = find(sc, ":?/");
-	if (!store(mp, sc, CP_HOST, host))
+	if (!store(mp, sc, MP_HOST, host))
 		return false;
 
 	if (!parse_port(mp, sc))
@@ -415,12 +415,12 @@ parse_classic_tcp(mapi_params *mp, scanner *sc)
 }
 
 static bool
-parse_classic_unix(mapi_params *mp, scanner *sc)
+parse_classic_unix(msettings *mp, scanner *sc)
 {
 	assert(sc->c == '/');
 	char *sock = find(sc, "?");
 
-	if (!store(mp, sc, CP_SOCK, sock))
+	if (!store(mp, sc, MP_SOCK, sock))
 		return false;
 
 	if (sc->c == '?') {
@@ -432,7 +432,7 @@ parse_classic_unix(mapi_params *mp, scanner *sc)
 }
 
 static bool
-parse_classic(mapi_params *mp, scanner *sc)
+parse_classic(msettings *mp, scanner *sc)
 {
 	if (!consume(sc, "monetdb://"))
 		return false;
@@ -444,7 +444,7 @@ parse_classic(mapi_params *mp, scanner *sc)
 }
 
 static bool
-parse(mapi_params *mp, scanner *sc)
+parse(msettings *mp, scanner *sc)
 {
 	// process the scheme
 	char *scheme = scan(sc, generic_special);
@@ -453,13 +453,13 @@ parse(mapi_params *mp, scanner *sc)
 	else
 		return complain(sc, "expected URL starting with monetdb:, monetdbs: or mapi:monetdb:");
 	if (strcmp(scheme, "monetdb") == 0) {
-		mapi_param_set_bool(mp, CP_TLS, false);
+		msetting_set_bool(mp, MP_TLS, false);
 		return parse_modern(mp, sc);
 	} else if (strcmp(scheme, "monetdbs") == 0) {
-		mapi_param_set_bool(mp, CP_TLS, true);
+		msetting_set_bool(mp, MP_TLS, true);
 		return parse_modern(mp, sc);
 	} else if (strcmp(scheme, "mapi") == 0) {
-		mapi_param_set_bool(mp, CP_TLS, false);
+		msetting_set_bool(mp, MP_TLS, false);
 		return parse_classic(mp, sc);
 	} else {
 		return complain(sc, "unknown scheme '%s'", scheme);
@@ -467,10 +467,10 @@ parse(mapi_params *mp, scanner *sc)
 }
 
 
-/* update the mapi_params from the URL. set *error_buffer to NULL and return true
+/* update the msettings from the URL. set *error_buffer to NULL and return true
  * if success, set *error_buffer to malloc'ed error message and return false on failure.
  * if return value is true but *error_buffer is NULL, malloc failed. */
-bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
+bool msettings_parse_url(msettings *mp, const char *url, char **error_buffer)
 {
 	bool ok;
 	scanner sc;
@@ -478,13 +478,13 @@ bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
 		return false;
 
 	// clear existing core values
-	mapi_param_set_bool(mp, CP_TLS, false);
-	mapi_param_set_string(mp, CP_HOST, "");
-	mapi_param_set_long(mp, CP_PORT, -1);
-	mapi_param_set_string(mp, CP_DATABASE, "");
+	msetting_set_bool(mp, MP_TLS, false);
+	msetting_set_string(mp, MP_HOST, "");
+	msetting_set_long(mp, MP_PORT, -1);
+	msetting_set_string(mp, MP_DATABASE, "");
 
-	long user_gen = mapi_param_user_generation(mp);
-	long password_gen = mapi_param_password_generation(mp);
+	long user_gen = msettings_user_generation(mp);
+	long password_gen = msettings_password_generation(mp);
 
 	if (parse(mp, &sc)) {
 		// went well
@@ -501,10 +501,10 @@ bool mapi_param_parse_url(mapi_params *mp, const char *url, char **error_buffer)
 		ok = false;
 	}
 
-	long new_user_gen = mapi_param_user_generation(mp);
-	long new_password_gen = mapi_param_password_generation(mp);
+	long new_user_gen = msettings_user_generation(mp);
+	long new_password_gen = msettings_password_generation(mp);
 	if (new_user_gen > user_gen && new_password_gen == password_gen) {
-		mapi_params_error msg = mapi_param_set_string(mp, CP_PASSWORD, "");
+		msettings_error msg = msetting_set_string(mp, MP_PASSWORD, "");
 		if (msg) {
 			if (error_buffer)
 				*error_buffer = strdup(msg);

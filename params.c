@@ -12,7 +12,7 @@
 
 #define FATAL() do { fprintf(stderr, "\n\n abort in params.c: %s\n\n", __func__); abort(); } while (0)
 
-int parse_bool(const char *text)
+int msetting_parse_bool(const char *text)
 {
 	static struct { const char *word; bool value; } variants[] = {
 		{ "true", true },
@@ -29,36 +29,36 @@ int parse_bool(const char *text)
 }
 
 
-static const struct { const char *name;  mapiparm parm; }
+static const struct { const char *name;  mparm parm; }
 by_name[] = {
-	{ .name="autocommit", .parm=CP_AUTOCOMMIT },
-	{ .name="binary", .parm=CP_BINARY },
-	{ .name="cert", .parm=CP_CERT },
-	{ .name="certhash", .parm=CP_CERTHASH },
-	{ .name="clientcert", .parm=CP_CLIENTCERT },
-	{ .name="clientkey", .parm=CP_CLIENTKEY },
-	{ .name="database", .parm=CP_DATABASE },
-	{ .name="host", .parm=CP_HOST },
-	{ .name="language", .parm=CP_LANGUAGE },
-	{ .name="password", .parm=CP_PASSWORD },
-	{ .name="port", .parm=CP_PORT },
-	{ .name="replysize", .parm=CP_REPLYSIZE },
-	{ .name="fetchsize", .parm=CP_REPLYSIZE },
-	{ .name="schema", .parm=CP_SCHEMA },
-	{ .name="sock", .parm=CP_SOCK },
-	{ .name="table", .parm=CP_TABLE },
-	{ .name="tableschema", .parm=CP_TABLESCHEMA },
-	{ .name="timezone", .parm=CP_TIMEZONE },
-	{ .name="tls", .parm=CP_TLS },
-	{ .name="user", .parm=CP_USER },
+	{ .name="autocommit", .parm=MP_AUTOCOMMIT },
+	{ .name="binary", .parm=MP_BINARY },
+	{ .name="cert", .parm=MP_CERT },
+	{ .name="certhash", .parm=MP_CERTHASH },
+	{ .name="clientcert", .parm=MP_CLIENTCERT },
+	{ .name="clientkey", .parm=MP_CLIENTKEY },
+	{ .name="database", .parm=MP_DATABASE },
+	{ .name="host", .parm=MP_HOST },
+	{ .name="language", .parm=MP_LANGUAGE },
+	{ .name="password", .parm=MP_PASSWORD },
+	{ .name="port", .parm=MP_PORT },
+	{ .name="replysize", .parm=MP_REPLYSIZE },
+	{ .name="fetchsize", .parm=MP_REPLYSIZE },
+	{ .name="schema", .parm=MP_SCHEMA },
+	{ .name="sock", .parm=MP_SOCK },
+	{ .name="table", .parm=MP_TABLE },
+	{ .name="tableschema", .parm=MP_TABLESCHEMA },
+	{ .name="timezone", .parm=MP_TIMEZONE },
+	{ .name="tls", .parm=MP_TLS },
+	{ .name="user", .parm=MP_USER },
 	//
-	{ .name="hash", .parm=CP_IGNORE },
-	{ .name="debug", .parm=CP_IGNORE },
-	{ .name="logfile", .parm=CP_IGNORE },
+	{ .name="hash", .parm=MP_IGNORE },
+	{ .name="debug", .parm=MP_IGNORE },
+	{ .name="logfile", .parm=MP_IGNORE },
 };
 
-const mapiparm
-mapiparm_parse(const char *name)
+const mparm
+mparm_parse(const char *name)
 {
 	int n = sizeof(by_name) / sizeof(by_name[0]);
 	// could use a binary search but this is not going to be a bottleneck
@@ -66,54 +66,54 @@ mapiparm_parse(const char *name)
 		if (strcmp(by_name[i].name, name) == 0)
 			return by_name[i].parm;
 
-	return strchr(name, '_') ? CP_IGNORE : CP_UNKNOWN;
+	return strchr(name, '_') ? MP_IGNORE : MP_UNKNOWN;
 }
 
 const char *
-mapiparm_name(mapiparm parm)
+mparm_name(mparm parm)
 {
 	switch (parm) {
-		case CP_AUTOCOMMIT: return "autocommit";
-		case CP_BINARY: return "binary";
-		case CP_CERT: return "cert";
-		case CP_CERTHASH: return "certhash";
-		case CP_CLIENTCERT: return "clientcert";
-		case CP_CLIENTKEY: return "clientkey";
-		case CP_DATABASE: return "database";
-		case CP_HOST: return "host";
-		case CP_LANGUAGE: return "language";
-		case CP_PASSWORD: return "password";
-		case CP_PORT: return "port";
-		case CP_REPLYSIZE: return "replysize";
-		case CP_SCHEMA: return "schema";
-		case CP_SOCK: return "sock";
-		case CP_TABLE: return "table";
-		case CP_TABLESCHEMA: return "tableschema";
-		case CP_TIMEZONE: return "timezone";
-		case CP_TLS: return "tls";
-		case CP_USER: return "user";
+		case MP_AUTOCOMMIT: return "autocommit";
+		case MP_BINARY: return "binary";
+		case MP_CERT: return "cert";
+		case MP_CERTHASH: return "certhash";
+		case MP_CLIENTCERT: return "clientcert";
+		case MP_CLIENTKEY: return "clientkey";
+		case MP_DATABASE: return "database";
+		case MP_HOST: return "host";
+		case MP_LANGUAGE: return "language";
+		case MP_PASSWORD: return "password";
+		case MP_PORT: return "port";
+		case MP_REPLYSIZE: return "replysize";
+		case MP_SCHEMA: return "schema";
+		case MP_SOCK: return "sock";
+		case MP_TABLE: return "table";
+		case MP_TABLESCHEMA: return "tableschema";
+		case MP_TIMEZONE: return "timezone";
+		case MP_TLS: return "tls";
+		case MP_USER: return "user";
 		default: FATAL();
 	}
 }
 
 bool
-mapiparm_is_core(mapiparm parm)
+mparm_is_core(mparm parm)
 {
 	switch (parm) {
-		case CP_TLS:
-		case CP_HOST:
-		case CP_PORT:
-		case CP_DATABASE:
-		case CP_TABLESCHEMA:
-		case CP_TABLE:
+		case MP_TLS:
+		case MP_HOST:
+		case MP_PORT:
+		case MP_DATABASE:
+		case MP_TABLESCHEMA:
+		case MP_TABLE:
 			return true;
 		default:
 			return false;
 	}
 }
 
-struct mapi_params {
-	// Must match EXACTLY the order of enum mapiparm
+struct msettings {
+	// Must match EXACTLY the order of enum mparm
 	bool dummy_start_bool;
 	bool tls;
 	bool autocommit;
@@ -151,18 +151,18 @@ struct mapi_params {
 	bool validated;
 };
 
-mapi_params *mapi_params_create(void)
+msettings *msettings_create(void)
 {
 	char *sql = strdup("sql");
 	char *binary_on = strdup("on");
-	mapi_params *mp = malloc(sizeof(*mp));
+	msettings *mp = malloc(sizeof(*mp));
 	if (!sql || !binary_on || !mp) {
 		free(sql);
 		free(binary_on);
 		free(mp);
 		return NULL;
 	}
-	*mp = (mapi_params) {
+	*mp = (msettings) {
 		.tls = false,
 		.autocommit = true,
 
@@ -194,7 +194,7 @@ mapi_params *mapi_params_create(void)
 }
 
 void
-mapi_params_destroy(mapi_params *mp)
+msettings_destroy(msettings *mp)
 {
 	for (char **p = &mp->dummy_start_string + 1; p < &mp->dummy_end_string; p++) {
 		free(*p);
@@ -208,11 +208,11 @@ mapi_params_destroy(mapi_params *mp)
 }
 
 const char*
-mapi_param_string(const mapi_params *mp, mapiparm parm)
+msetting_string(const msettings *mp, mparm parm)
 {
-	if (mapiparm_classify(parm) != CPT_STRING)
+	if (mparm_classify(parm) != MPCLASS_STRING)
 		FATAL();
-	int i = parm - CP__STRING_START;
+	int i = parm - MP__STRING_START;
 	char * const *p = &mp->dummy_start_string + 1 + i;
 	if (p >=  &mp->dummy_end_string)
 		FATAL();
@@ -221,14 +221,14 @@ mapi_param_string(const mapi_params *mp, mapiparm parm)
 }
 
 
-mapi_params_error
-mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
+msettings_error
+msetting_set_string(msettings *mp, mparm parm, const char* value)
 {
 	char *v;
 
-	if (mapiparm_classify(parm) != CPT_STRING)
+	if (mparm_classify(parm) != MPCLASS_STRING)
 		FATAL();
-	int i = parm - CP__STRING_START;
+	int i = parm - MP__STRING_START;
 	char **p = &mp->dummy_start_string + 1 + i;
 	if (p >=  &mp->dummy_end_string)
 		FATAL();
@@ -244,9 +244,9 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 	free(*p);
 	*p = v;
 
-	if (parm == CP_USER)
+	if (parm == MP_USER)
 		mp->user_generation++;
-	if (parm == CP_PASSWORD)
+	if (parm == MP_PASSWORD)
 		mp->password_generation++;
 
 	mp->validated = false;
@@ -255,11 +255,11 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 
 
 long
-mapi_param_long(const mapi_params *mp, mapiparm parm)
+msetting_long(const msettings *mp, mparm parm)
 {
-	if (mapiparm_classify(parm) != CPT_LONG)
+	if (mparm_classify(parm) != MPCLASS_LONG)
 		FATAL();
-	int i = parm - CP__LONG_START;
+	int i = parm - MP__LONG_START;
 	const long * p = &mp->dummy_start_long + 1 + i;
 	if (p >=  &mp->dummy_end_long)
 		FATAL();
@@ -268,12 +268,12 @@ mapi_param_long(const mapi_params *mp, mapiparm parm)
 }
 
 
-mapi_params_error
-mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
+msettings_error
+msetting_set_long(msettings *mp, mparm parm, long value)
 {
-	if (mapiparm_classify(parm) != CPT_LONG)
+	if (mparm_classify(parm) != MPCLASS_LONG)
 		FATAL();
-	int i = parm - CP__LONG_START;
+	int i = parm - MP__LONG_START;
 	long *p = &mp->dummy_start_long + 1 + i;
 	if (p >=  &mp->dummy_end_long)
 		FATAL();
@@ -286,11 +286,11 @@ mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 
 
 bool
-mapi_param_bool(const mapi_params *mp, mapiparm parm)
+msetting_bool(const msettings *mp, mparm parm)
 {
-	if (mapiparm_classify(parm) != CPT_BOOL)
+	if (mparm_classify(parm) != MPCLASS_BOOL)
 		FATAL();
-	int i = parm - CP__BOOL_START;
+	int i = parm - MP__BOOL_START;
 	const bool *p = &mp->dummy_start_bool + 1 + i;
 	if (p >=  &mp->dummy_end_bool)
 		FATAL();
@@ -298,12 +298,12 @@ mapi_param_bool(const mapi_params *mp, mapiparm parm)
 }
 
 
-mapi_params_error
-mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value)
+msettings_error
+msetting_set_bool(msettings *mp, mparm parm, bool value)
 {
-	if (mapiparm_classify(parm) != CPT_BOOL)
+	if (mparm_classify(parm) != MPCLASS_BOOL)
 		FATAL();
-	int i = parm - CP__BOOL_START;
+	int i = parm - MP__BOOL_START;
 	bool *p = &mp->dummy_start_bool + 1 + i;
 	if (p >=  &mp->dummy_end_bool)
 		FATAL();
@@ -313,25 +313,25 @@ mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value)
 	return NULL;
 }
 
-mapi_params_error
-mapi_param_from_text(mapi_params *mp, mapiparm parm, const char *text)
+msettings_error
+msetting_parse(msettings *mp, mparm parm, const char *text)
 {
-	switch (mapiparm_classify(parm)) {
-		case CPT_BOOL:
-			int b = parse_bool(text);
+	switch (mparm_classify(parm)) {
+		case MPCLASS_BOOL:
+			int b = msetting_parse_bool(text);
 			if (b < 0)
 				return "invalid boolean value";
-			return mapi_param_set_bool(mp, parm, b);
-		case CPT_LONG:
+			return msetting_set_bool(mp, parm, b);
+		case MPCLASS_LONG:
 			if (text[0] == '\0')
 				return "integer parameter cannot be empty string";
 			char *end;
 			long l = strtol(text, &end, 10);
 			if (*end != '\0')
 				return "invalid integer";
-			return mapi_param_set_long(mp, parm, l);
-		case CPT_STRING:
-			return mapi_param_set_string(mp, parm, text);
+			return msetting_set_long(mp, parm, l);
+		case MPCLASS_STRING:
+			return msetting_set_string(mp, parm, text);
 		default:
 			assert(0 && "unreachable");
 			return "internal error, unclassified parameter type";
@@ -339,22 +339,22 @@ mapi_param_from_text(mapi_params *mp, mapiparm parm, const char *text)
 }
 
 char *
-mapi_param_to_text(mapi_params *mp, mapiparm parm)
+msetting_as_string(msettings *mp, mparm parm)
 {
-	switch (mapiparm_classify(parm)) {
-		case CPT_BOOL:
-			bool b = mapi_param_bool(mp, parm);
+	switch (mparm_classify(parm)) {
+		case MPCLASS_BOOL:
+			bool b = msetting_bool(mp, parm);
 			return strdup(b ? "true" : " false");
-		case CPT_LONG:
-			long l = mapi_param_long(mp, parm);
+		case MPCLASS_LONG:
+			long l = msetting_long(mp, parm);
 			int n = 40;
 			char *buf = malloc(n);
 			if (!buf)
 				return NULL;
 			snprintf(buf, n, "%ld", l);
 			return buf;
-		case CPT_STRING:
-			const char *s = mapi_param_string(mp, parm);
+		case MPCLASS_STRING:
+			const char *s = msetting_string(mp, parm);
 			return strdup(s);
 		default:
 			assert(0 && "unreachable");
@@ -362,8 +362,8 @@ mapi_param_to_text(mapi_params *mp, mapiparm parm)
 	}
 }
 
-mapi_params_error
-mapi_param_set_ignored(mapi_params *mp, const char *key, const char *value)
+msettings_error
+msetting_set_ignored(msettings *mp, const char *key, const char *value)
 {
 	char *my_key = strdup(key);
 	char *my_value = strdup(value);
@@ -388,43 +388,43 @@ mapi_param_set_ignored(mapi_params *mp, const char *key, const char *value)
 }
 
 /* store named parameter */
-mapi_params_error
-mapi_param_set_named(mapi_params *mp, bool allow_core, const char *key, const char *value)
+msettings_error
+msetting_set_named(msettings *mp, bool allow_core, const char *key, const char *value)
 {
-	mapiparm parm = mapiparm_parse(key);
-	if (parm == CP_UNKNOWN)
+	mparm parm = mparm_parse(key);
+	if (parm == MP_UNKNOWN)
 		return "unknown parameter";
 
-	if (parm == CP_IGNORE)
-		return mapi_param_set_ignored(mp, key, value);
+	if (parm == MP_IGNORE)
+		return msetting_set_ignored(mp, key, value);
 
-	if (!allow_core && mapiparm_is_core(parm))
+	if (!allow_core && mparm_is_core(parm))
 		return "parameter not allowed here";
 
-	return mapi_param_from_text(mp, parm, value);
+	return msetting_parse(mp, parm, value);
 }
 
 
 static bool
-empty(const mapi_params *mp, mapiparm parm)
+empty(const msettings *mp, mparm parm)
 {
-	const char *value = mapi_param_string(mp, parm);
+	const char *value = msetting_string(mp, parm);
 	assert(value);
 	return *value == '\0';
 }
 
 static bool
-nonempty(const mapi_params *mp, mapiparm parm)
+nonempty(const msettings *mp, mparm parm)
 {
 	return !empty(mp, parm);
 }
 
-static mapi_params_error
-validate_certhash(mapi_params *mp)
+static msettings_error
+validate_certhash(msettings *mp)
 {
 	mp->certhash_digits_buffer[0] = '\0';
 
-	const char *full_certhash = mapi_param_string(mp, CP_CERTHASH);
+	const char *full_certhash = msetting_string(mp, MP_CERTHASH);
 	const char *certhash = full_certhash;
 	if (*certhash == '\0')
 		return NULL;
@@ -467,8 +467,8 @@ validate_identifier(const char *name)
 	return true;
 }
 
-mapi_params_error
-mapi_param_validate(mapi_params *mp)
+msettings_error
+msettings_validate(msettings *mp)
 {
 	if (mp->validated)
 		return NULL;
@@ -478,20 +478,20 @@ mapi_param_validate(mapi_params *mp)
 	// (this has already been checked)
 
 	// 2. At least one of **sock** and **host** must be empty.
-	if (nonempty(mp, CP_SOCK) && nonempty(mp, CP_HOST))
+	if (nonempty(mp, MP_SOCK) && nonempty(mp, MP_HOST))
 		return "With sock=, host must be 'localhost'";
 
 	// 3. The string parameter **binary** must either parse as a boolean or as a
 	//    non-negative integer.
-	// (pretend valid so we can use mapi_param_connect_binary() to see if it parses)
+	// (pretend valid so we can use msettings_connect_binary() to see if it parses)
 	mp->validated = true;
-	long level = mapi_param_connect_binary(mp);
+	long level = msettings_connect_binary(mp);
 	mp->validated = false;
 	if (level < 0)
 		return "invalid value for parameter 'binary'";
 
 	// 4. If **sock** is not empty, **tls** must be 'off'.
-	if (nonempty(mp, CP_SOCK) && mapi_param_bool(mp, CP_TLS))
+	if (nonempty(mp, MP_SOCK) && msetting_bool(mp, MP_TLS))
 		return "TLS cannot be used with Unix domain sockets";
 
 	// 5. If **certhash** is not empty, it must be of the form `{sha256}hexdigits`
@@ -501,31 +501,31 @@ mapi_param_validate(mapi_params *mp)
 		return certhash_msg;
 
 	// 6. If **tls** is 'off', **cert** and **certhash** must be 'off' as well.
-	if (nonempty(mp, CP_CERT) || nonempty(mp, CP_CERTHASH))
-		if (!mapi_param_bool(mp, CP_TLS))
+	if (nonempty(mp, MP_CERT) || nonempty(mp, MP_CERTHASH))
+		if (!msetting_bool(mp, MP_TLS))
 			return "'cert' and 'certhash' can only be used with monetdbs:";
 
 	// 7. Parameters **database**, **tableschema** and **table** must consist only of
 	//    upper- and lowercase letters, digits, dashes and underscores. They must not
 	//    start with a dash.
-	const char *database = mapi_param_string(mp, CP_DATABASE);
+	const char *database = msetting_string(mp, MP_DATABASE);
 	if (!validate_identifier(database))
 		return "invalid database name";
-	const char *tableschema = mapi_param_string(mp, CP_TABLESCHEMA);
+	const char *tableschema = msetting_string(mp, MP_TABLESCHEMA);
 	if (!validate_identifier(tableschema))
 		return "invalid schema name";
-	const char *table = mapi_param_string(mp, CP_TABLE);
+	const char *table = msetting_string(mp, MP_TABLE);
 	if (!validate_identifier(table))
 		return "invalid table name";
 
 	// 8. Parameter **port** must be -1 or in the range 1-65535.
-	long port = mapi_param_long(mp, CP_PORT);
+	long port = msetting_long(mp, MP_PORT);
 	bool port_ok = (port == -1 || (port >= 1 && port <= 65535));
 	if (!port_ok)
 		return "invalid port";
 
-	// compute this here so the getter function can take const mapi_params*
-	long effective_port = mapi_param_connect_port(mp);
+	// compute this here so the getter function can take const msettings*
+	long effective_port = msettings_connect_port(mp);
 	snprintf(mp->unix_sock_name_buffer, sizeof(mp->unix_sock_name_buffer), "/tmp/.s.monetdb.%ld", effective_port);
 
 	mp->validated = true;
@@ -533,18 +533,18 @@ mapi_param_validate(mapi_params *mp)
 }
 
 bool
-mapi_param_connect_scan(const mapi_params *mp)
+msettings_connect_scan(const msettings *mp)
 {
-	if (empty(mp, CP_DATABASE))
+	if (empty(mp, MP_DATABASE))
 		return false;
-	if (nonempty(mp, CP_SOCK))
+	if (nonempty(mp, MP_SOCK))
 		return false;
-	if (nonempty(mp, CP_HOST))
+	if (nonempty(mp, MP_HOST))
 		return false;
-	long port = mapi_param_long(mp, CP_PORT);
+	long port = msetting_long(mp, MP_PORT);
 	if (port != -1)
 		return false;
-	bool tls = mapi_param_bool(mp, CP_TLS);
+	bool tls = msetting_bool(mp, MP_TLS);
 	if (tls)
 		return false;
 
@@ -552,12 +552,12 @@ mapi_param_connect_scan(const mapi_params *mp)
 }
 
 const char *
-mapi_param_connect_unix(const mapi_params *mp)
+msettings_connect_unix(const msettings *mp)
 {
 	assert(mp->validated);
-	const char *sock = mapi_param_string(mp, CP_SOCK);
-	const char *host = mapi_param_string(mp, CP_HOST);
-	bool tls = mapi_param_bool(mp, CP_TLS);
+	const char *sock = msetting_string(mp, MP_SOCK);
+	const char *host = msetting_string(mp, MP_HOST);
+	bool tls = msetting_bool(mp, MP_TLS);
 
 	if (*sock)
 		return sock;
@@ -570,12 +570,12 @@ mapi_param_connect_unix(const mapi_params *mp)
 
 
 const char *
-mapi_param_connect_tcp(const mapi_params *mp)
+msettings_connect_tcp(const msettings *mp)
 {
 	assert(mp->validated);
-	const char *sock = mapi_param_string(mp, CP_SOCK);
-	const char *host = mapi_param_string(mp, CP_HOST);
-	// bool tls = mapi_param_bool(mp, CP_TLS);
+	const char *sock = msetting_string(mp, MP_SOCK);
+	const char *host = msetting_string(mp, MP_HOST);
+	// bool tls = msetting_bool(mp, MP_TLS);
 
 	if (*sock)
 		return "";
@@ -585,9 +585,9 @@ mapi_param_connect_tcp(const mapi_params *mp)
 }
 
 long
-mapi_param_connect_port(const mapi_params *mp)
+msettings_connect_port(const msettings *mp)
 {
-	long port = mapi_param_long(mp, CP_PORT);
+	long port = msetting_long(mp, MP_PORT);
 	if (port == -1)
 		return 50000;
 	else
@@ -595,12 +595,12 @@ mapi_param_connect_port(const mapi_params *mp)
 }
 
 const char*
-mapi_param_connect_tls_verify(const mapi_params *mp)
+msettings_connect_tls_verify(const msettings *mp)
 {
 	assert(mp->validated);
-	bool tls = mapi_param_bool(mp, CP_TLS);
-	const char *cert = mapi_param_string(mp, CP_CERT);
-	const char *certhash = mapi_param_string(mp, CP_CERTHASH);
+	bool tls = msetting_bool(mp, MP_TLS);
+	const char *cert = msetting_string(mp, MP_CERT);
+	const char *certhash = msetting_string(mp, MP_CERTHASH);
 
 	if (!tls)
 		return "";
@@ -612,23 +612,23 @@ mapi_param_connect_tls_verify(const mapi_params *mp)
 }
 
 const char*
-mapi_param_connect_certhash_digits(const mapi_params *mp)
+msettings_connect_certhash_digits(const msettings *mp)
 {
 	return mp->certhash_digits_buffer;
 }
 
 // also used as a validator, returns < 0 on invalid
 long
-mapi_param_connect_binary(const mapi_params *mp)
+msettings_connect_binary(const msettings *mp)
 {
-	const char *binary = mapi_param_string(mp, CP_BINARY);
+	const char *binary = msetting_string(mp, MP_BINARY);
 
 	// must not be empty
 	if (binary[0] == '\0')
 		return -1;
 
 	// may be bool
-	int b = parse_bool(binary);
+	int b = msetting_parse_bool(binary);
 	if (b == 0)
 		return 0;
 	if (b == 1)
@@ -646,14 +646,14 @@ mapi_param_connect_binary(const mapi_params *mp)
 
 /* automatically incremented each time the corresponding field is updated */
 long
-mapi_param_user_generation(const mapi_params *mp)
+msettings_user_generation(const msettings *mp)
 {
 	return mp->user_generation;
 }
 
 /* automatically incremented each time the corresponding field is updated */
 long
-mapi_param_password_generation(const mapi_params *mp)
+msettings_password_generation(const msettings *mp)
 {
 	return mp->password_generation;
 }

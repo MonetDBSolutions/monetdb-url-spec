@@ -14,13 +14,13 @@
 // love it when a task is so straightforward I can use global variables!
 static int start_line = -1;
 static int nstarted = 0;
-static mapi_params *mp = NULL;
+static msettings *mp = NULL;
 
 static bool
 handle_parse_command(const char *location, char *url)
 {
 	char *errmsg = NULL;
-	bool ok = mapi_param_parse_url(mp, url, &errmsg);
+	bool ok = msettings_parse_url(mp, url, &errmsg);
 	if (!ok) {
 		assert(errmsg);
 		fprintf(stderr, "%s: %s\n", location, errmsg);
@@ -34,7 +34,7 @@ static bool
 handle_accept_command(const char *location, char *url)
 {
 	char *errmsg = NULL;
-	bool ok = mapi_param_parse_url(mp, url, &errmsg);
+	bool ok = msettings_parse_url(mp, url, &errmsg);
 	if (!ok) {
 		assert(errmsg);
 		fprintf(stderr, "%s: %s\n", location, errmsg);
@@ -42,7 +42,7 @@ handle_accept_command(const char *location, char *url)
 		return false;
 	}
 
-	const char *msg = mapi_param_validate(mp);
+	const char *msg = msettings_validate(mp);
 	if (msg != NULL) {
 		fprintf(stderr, "%s: URL invalid: %s\n", location, msg);
 		return false;
@@ -53,11 +53,11 @@ handle_accept_command(const char *location, char *url)
 static bool
 handle_reject_command(const char *location, char *url)
 {
-	bool ok = mapi_param_parse_url(mp, url, NULL);
+	bool ok = msettings_parse_url(mp, url, NULL);
 	if (!ok)
 		return true;
 
-	const char *msg = mapi_param_validate(mp);
+	const char *msg = msettings_validate(mp);
 	if (msg != NULL)
 		return true;
 
@@ -68,7 +68,7 @@ handle_reject_command(const char *location, char *url)
 static bool
 handle_set_command(const char *location, const char *key, const char *value)
 {
-	mapi_params_error msg = mapi_param_set_named(mp, true, key, value);
+	msettings_error msg = msetting_set_named(mp, true, key, value);
 	if (msg) {
 		fprintf(stderr, "%s: cannot set '%s': %s\n", location, key, msg);
 		return false;
@@ -78,7 +78,7 @@ handle_set_command(const char *location, const char *key, const char *value)
 
 static bool
 ensure_valid(const char *location) {
-	const char *msg = mapi_param_validate(mp);
+	const char *msg = msettings_validate(mp);
 	if (msg == NULL)
 		return true;
 	fprintf(stderr, "%s: invalid parameter state: %s\n", location, msg);
@@ -86,9 +86,9 @@ ensure_valid(const char *location) {
 }
 
 static bool
-expect_bool(const char *location, const mapiparm parm, bool (*extract)(const mapi_params*), const char *value)
+expect_bool(const char *location, const mparm parm, bool (*extract)(const msettings*), const char *value)
 {
-	int x = parse_bool(value);
+	int x = msetting_parse_bool(value);
 	if (x < 0) {
 		fprintf(stderr, "%s: syntax error: invalid bool '%s'\n", location, value);
 	}
@@ -100,7 +100,7 @@ expect_bool(const char *location, const mapiparm parm, bool (*extract)(const map
 			return false;
 		actual = extract(mp);
 	} else {
-		actual = mapi_param_bool(mp, parm);
+		actual = msetting_bool(mp, parm);
 	}
 
 	if (actual == b)
@@ -114,7 +114,7 @@ expect_bool(const char *location, const mapiparm parm, bool (*extract)(const map
 }
 
 static bool
-expect_long(const char *location, const mapiparm parm, long (*extract)(const mapi_params*), const char *value)
+expect_long(const char *location, const mparm parm, long (*extract)(const msettings*), const char *value)
 {
 	if (strlen(value) == 0) {
 		fprintf(stderr, "%s: syntax error: integer value cannot be empty string\n", location);
@@ -133,7 +133,7 @@ expect_long(const char *location, const mapiparm parm, long (*extract)(const map
 			return false;
 		actual = extract(mp);
 	} else {
-		actual = mapi_param_long(mp, parm);
+		actual = msetting_long(mp, parm);
 	}
 
 	if (actual == n)
@@ -144,7 +144,7 @@ expect_long(const char *location, const mapiparm parm, long (*extract)(const map
 }
 
 static bool
-expect_string(const char *location, const mapiparm parm, const char *(*extract)(const mapi_params*), const char *value)
+expect_string(const char *location, const mparm parm, const char *(*extract)(const msettings*), const char *value)
 {
 	const char *actual;
 	if (extract) {
@@ -152,7 +152,7 @@ expect_string(const char *location, const mapiparm parm, const char *(*extract)(
 			return false;
 		actual = extract(mp);
 	} else {
-		actual = mapi_param_string(mp, parm);
+		actual = msetting_string(mp, parm);
 	}
 
 	if (strcmp(actual, value) == 0)
@@ -167,13 +167,13 @@ static bool
 handle_expect_command(const char *location, char *key, char *value)
 {
 	if (strcmp("valid", key) == 0) {
-		int x = parse_bool(value);
+		int x = msetting_parse_bool(value);
 		if (x < 0) {
 			fprintf(stderr, "%s: invalid boolean value: %s\n", location, value);
 			return false;
 		}
 		bool expected = x > 0;
-		mapi_params_error msg = mapi_param_validate(mp);
+		msettings_error msg = msettings_validate(mp);
 		bool actual = msg == NULL;
 		if (actual != expected) {
 			fprintf(stderr, "%s: expected '%s', found '%s'\n",
@@ -187,26 +187,26 @@ handle_expect_command(const char *location, char *key, char *value)
 	}
 
 	if (strcmp("connect_scan", key) == 0)
-		return expect_bool(location, CP_UNKNOWN, mapi_param_connect_scan, value);
+		return expect_bool(location, MP_UNKNOWN, msettings_connect_scan, value);
 	if (strcmp("connect_unix", key) == 0)
-		return expect_string(location, CP_UNKNOWN, mapi_param_connect_unix, value);
+		return expect_string(location, MP_UNKNOWN, msettings_connect_unix, value);
 	if (strcmp("connect_tcp", key) == 0)
-		return expect_string(location, CP_UNKNOWN, mapi_param_connect_tcp, value);
+		return expect_string(location, MP_UNKNOWN, msettings_connect_tcp, value);
 	if (strcmp("connect_port", key) == 0)
-		return expect_long(location, CP_UNKNOWN, mapi_param_connect_port, value);
+		return expect_long(location, MP_UNKNOWN, msettings_connect_port, value);
 	if (strcmp("connect_tls_verify", key) == 0)
-		return expect_string(location, CP_UNKNOWN, mapi_param_connect_tls_verify, value);
+		return expect_string(location, MP_UNKNOWN, msettings_connect_tls_verify, value);
 	if (strcmp("connect_certhash_digits", key) == 0)
-		return expect_string(location, CP_UNKNOWN, mapi_param_connect_certhash_digits, value);
+		return expect_string(location, MP_UNKNOWN, msettings_connect_certhash_digits, value);
 	if (strcmp("connect_binary", key) == 0)
-		return expect_long(location, CP_UNKNOWN, mapi_param_connect_binary, value);
+		return expect_long(location, MP_UNKNOWN, msettings_connect_binary, value);
 
-	const mapiparm parm = mapiparm_parse(key);
-	if (parm == CP_UNKNOWN) {
+	const mparm parm = mparm_parse(key);
+	if (parm == MP_UNKNOWN) {
 		fprintf(stderr, "%s: unknown parameter '%s'\n:", location, key);
 		return false;
 	}
-	if (parm == CP_IGNORE) {
+	if (parm == MP_IGNORE) {
 		if (strncmp(key, "connect_", 8) == 0)
 			fprintf(stderr, "%s: unknown virtual parameter '%s'\n", location, key);
 		else
@@ -214,12 +214,12 @@ handle_expect_command(const char *location, char *key, char *value)
 		return false;
 	}
 
-	switch (mapiparm_classify(parm)) {
-		case CPT_BOOL:
+	switch (mparm_classify(parm)) {
+		case MPCLASS_BOOL:
 			return expect_bool(location, parm, NULL, value);
-		case CPT_LONG:
+		case MPCLASS_LONG:
 			return expect_long(location, parm, NULL, value);
-		case CPT_STRING:
+		case MPCLASS_STRING:
 			return expect_string(location, parm, NULL, value);
 		default:
 			fprintf(stderr, "%s: internal error: unclassified parameter %d\n", location, (int)parm);
@@ -245,7 +245,7 @@ handle_line(int lineno, const char *location, char *line, int verbose)
 			// block starts here
 			nstarted++;
 			start_line = lineno;
-			mp = mapi_params_create();
+			mp = msettings_create();
 			if (mp == NULL) {
 				fprintf(stderr, "%s: malloc failed\n", location);
 				return false;
@@ -263,7 +263,7 @@ handle_line(int lineno, const char *location, char *line, int verbose)
 	if (strlen(line) > 0 && line[0] == '`') {
 		if (strcmp(line, "```") == 0) {
 			// lone backticks, block ends here
-			mapi_params_destroy(mp);
+			msettings_destroy(mp);
 			mp = NULL;
 			if (verbose >= 3)
 				fprintf(stderr, "\n");
@@ -287,7 +287,7 @@ handle_line(int lineno, const char *location, char *line, int verbose)
 		if (impl) {
 			if (strcmp(impl, "libmapi") != 0) {
 				// ONLY command is not about us. End the block here
-				mapi_params_destroy(mp);
+				msettings_destroy(mp);
 				mp = NULL;
 			}
 			return true;
@@ -298,7 +298,7 @@ handle_line(int lineno, const char *location, char *line, int verbose)
 		if (impl) {
 			if (strcmp(impl, "libmapi") == 0) {
 				// NOT command is about us. End the block here.
-				mapi_params_destroy(mp);
+				msettings_destroy(mp);
 				mp = NULL;
 			}
 			return true;
@@ -395,7 +395,7 @@ run_tests(const char *filename, FILE *f, int verbose)
 	assert(mp == NULL);
 	bool ok = run_tests_inner(filename, f, verbose);
 	if (mp) {
-		mapi_params_destroy(mp);
+		msettings_destroy(mp);
 		mp = NULL;
 	}
 	return ok;
