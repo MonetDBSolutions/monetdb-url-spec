@@ -3,15 +3,15 @@ CC=gcc
 CFLAGS=-std=c99 -Wall -Werror -ggdb3
 # CC=clang
 # CFLAGS=-std=c99 -Wall -Werror -ggdb3 -fsanitize=address,undefined
-SRC_C=params.c parseurl.c testsfile.c murltest.c
-FUZZ_C=fuzzer.c parseurl.c params.c
-SRC_H=params.h murltest.h
+SRC_C=msettings.c parseurl.c testsfile.c murltest.c
+FUZZ_C=fuzzer.c parseurl.c msettings.c
+SRC_H=msettings.h murltest.h
 TESTS_MD=c.md tests.md
 
 default: check testpy testc
 
 clean:
-	rm -f murltest murlcov murlfuzz *.o *.gcda *.gcno *.gcov
+	rm -f murltest murlcov murlfuzz *.o *.gcda *.gcno *.gcov *.orig *.rej
 
 check:
 	python3 check.py
