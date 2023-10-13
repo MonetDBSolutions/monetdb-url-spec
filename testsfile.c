@@ -214,12 +214,17 @@ handle_expect_command(const char *location, char *key, char *value)
 		return false;
 	}
 
-	if (parm < CP__LONG_START)
-		return expect_bool(location, parm, NULL, value);
-	else if (parm >= CP__STRING_START)
-		return expect_string(location, parm, NULL, value);
-	else
-		return expect_long(location, parm, NULL, value);
+	switch (mapiparm_classify(parm)) {
+		case CPT_BOOL:
+			return expect_bool(location, parm, NULL, value);
+		case CPT_LONG:
+			return expect_long(location, parm, NULL, value);
+		case CPT_STRING:
+			return expect_string(location, parm, NULL, value);
+		default:
+			fprintf(stderr, "%s: internal error: unclassified parameter %d\n", location, (int)parm);
+			return false;
+	}
 }
 
 

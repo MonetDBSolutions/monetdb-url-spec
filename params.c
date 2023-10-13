@@ -210,7 +210,7 @@ mapi_params_destroy(mapi_params *mp)
 const char*
 mapi_param_string(const mapi_params *mp, mapiparm parm)
 {
-	if (parm < CP__STRING_START)
+	if (mapiparm_classify(parm) != CPT_STRING)
 		FATAL();
 	int i = parm - CP__STRING_START;
 	char * const *p = &mp->dummy_start_string + 1 + i;
@@ -226,7 +226,7 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 {
 	char *v;
 
-	if (parm < CP__STRING_START)
+	if (mapiparm_classify(parm) != CPT_STRING)
 		FATAL();
 	int i = parm - CP__STRING_START;
 	char **p = &mp->dummy_start_string + 1 + i;
@@ -257,7 +257,7 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 long
 mapi_param_long(const mapi_params *mp, mapiparm parm)
 {
-	if (parm < CP__LONG_START)
+	if (mapiparm_classify(parm) != CPT_LONG)
 		FATAL();
 	int i = parm - CP__LONG_START;
 	const long * p = &mp->dummy_start_long + 1 + i;
@@ -271,7 +271,7 @@ mapi_param_long(const mapi_params *mp, mapiparm parm)
 mapi_params_error
 mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 {
-	if (parm < CP__LONG_START)
+	if (mapiparm_classify(parm) != CPT_LONG)
 		FATAL();
 	int i = parm - CP__LONG_START;
 	long *p = &mp->dummy_start_long + 1 + i;
@@ -288,7 +288,7 @@ mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 bool
 mapi_param_bool(const mapi_params *mp, mapiparm parm)
 {
-	if (parm < CP__BOOL_START)
+	if (mapiparm_classify(parm) != CPT_BOOL)
 		FATAL();
 	int i = parm - CP__BOOL_START;
 	const bool *p = &mp->dummy_start_bool + 1 + i;
@@ -301,7 +301,7 @@ mapi_param_bool(const mapi_params *mp, mapiparm parm)
 mapi_params_error
 mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value)
 {
-	if (parm < CP__BOOL_START)
+	if (mapiparm_classify(parm) != CPT_BOOL)
 		FATAL();
 	int i = parm - CP__BOOL_START;
 	bool *p = &mp->dummy_start_bool + 1 + i;
@@ -316,43 +316,49 @@ mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value)
 mapi_params_error
 mapi_param_from_text(mapi_params *mp, mapiparm parm, const char *text)
 {
-	if (parm < CP__LONG_START) {
-		int b = parse_bool(text);
-		if (b < 0)
-			return "invalid boolean value";
-		return mapi_param_set_bool(mp, parm, b);
-	} else if (parm >= CP__STRING_START) {
-		return mapi_param_set_string(mp, parm, text);
-	} else {
-		// it's a long
-		if (text[0] == '\0')
-			return "integer parameter cannot be empty string";
-		char *end;
-		long l = strtol(text, &end, 10);
-		if (*end != '\0')
-			return "invalid integer";
-		return mapi_param_set_long(mp, parm, l);
+	switch (mapiparm_classify(parm)) {
+		case CPT_BOOL:
+			int b = parse_bool(text);
+			if (b < 0)
+				return "invalid boolean value";
+			return mapi_param_set_bool(mp, parm, b);
+		case CPT_LONG:
+			if (text[0] == '\0')
+				return "integer parameter cannot be empty string";
+			char *end;
+			long l = strtol(text, &end, 10);
+			if (*end != '\0')
+				return "invalid integer";
+			return mapi_param_set_long(mp, parm, l);
+		case CPT_STRING:
+			return mapi_param_set_string(mp, parm, text);
+		default:
+			assert(0 && "unreachable");
+			return "internal error, unclassified parameter type";
 	}
 }
 
 char *
 mapi_param_to_text(mapi_params *mp, mapiparm parm)
 {
-	if (parm < CP__LONG_START) {
-		bool b = mapi_param_bool(mp, parm);
-		return strdup(b ? "true" : " false");
-	} else if (parm >= CP__STRING_START) {
-		const char *s = mapi_param_string(mp, parm);
-		return strdup(s);
-	} else {
-		// it's a long
-		long l = mapi_param_long(mp, parm);
-		int n = 40;
-		char *buf = malloc(n);
-		if (!buf)
+	switch (mapiparm_classify(parm)) {
+		case CPT_BOOL:
+			bool b = mapi_param_bool(mp, parm);
+			return strdup(b ? "true" : " false");
+		case CPT_LONG:
+			long l = mapi_param_long(mp, parm);
+			int n = 40;
+			char *buf = malloc(n);
+			if (!buf)
+				return NULL;
+			snprintf(buf, n, "%ld", l);
+			return buf;
+		case CPT_STRING:
+			const char *s = mapi_param_string(mp, parm);
+			return strdup(s);
+		default:
+			assert(0 && "unreachable");
 			return NULL;
-		snprintf(buf, n, "%ld", l);
-		return buf;
 	}
 }
 

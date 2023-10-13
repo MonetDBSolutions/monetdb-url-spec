@@ -4,6 +4,11 @@
 #define CP__LONG_START (200)
 #define CP__STRING_START (300)
 
+typedef enum mapiparm_class {
+	CPT_BOOL,
+	CPT_LONG,
+	CPT_STRING,
+} mapiparm_class;
 
 typedef enum mapiparm {
 		CP_UNKNOWN,
@@ -34,6 +39,17 @@ typedef enum mapiparm {
         CP_SCHEMA,
         CP_BINARY,
 } mapiparm;
+
+static inline mapiparm_class
+mapiparm_classify(mapiparm parm)
+{
+	if (parm < CP__LONG_START)
+		return CPT_BOOL;
+	else if (parm >= CP__STRING_START)
+		return CPT_STRING;
+	else
+		return CPT_LONG;
+}
 
 
 /* returns NULL if not found, pointer to mapiparm if found */
