@@ -1,8 +1,8 @@
 
-# CC=gcc
-# CFLAGS=-std=c99 -Wall -Werror -ggdb3
-CC=clang
-CFLAGS=-std=c99 -Wall -Werror -ggdb3 -fsanitize=address,undefined
+CC=gcc
+CFLAGS=-std=c99 -Wall -Werror -ggdb3
+# CC=clang
+# CFLAGS=-std=c99 -Wall -Werror -ggdb3 -fsanitize=address,undefined
 SRC_C=params.c parseurl.c testsfile.c murltest.c
 FUZZ_C=fuzzer.c parseurl.c params.c
 SRC_H=params.h murltest.h
