@@ -214,14 +214,12 @@ handle_expect_command(const char *location, char *key, char *value)
 		return false;
 	}
 
-	if (parm >= CP__BOOL_START && parm < CP__BOOL_END)
+	if (parm < CP__LONG_START)
 		return expect_bool(location, parm, NULL, value);
-	if (parm >= CP__LONG_START && parm < CP__LONG_END)
-		return expect_long(location, parm, NULL, value);
-	if (parm >= CP__STRING_START && parm < CP__STRING_END)
+	else if (parm >= CP__STRING_START)
 		return expect_string(location, parm, NULL, value);
-	fprintf(stderr, "%s: internal error\n", location);
-	return false;
+	else
+		return expect_long(location, parm, NULL, value);
 }
 
 

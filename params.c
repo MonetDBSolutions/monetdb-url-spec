@@ -113,9 +113,35 @@ mapiparm_is_core(mapiparm parm)
 }
 
 struct mapi_params {
-	bool bool_params[CP__BOOL_END - CP__BOOL_START];
-	long long_params[CP__LONG_END - CP__LONG_START];
-	char *string_parameters[CP__STRING_END - CP__STRING_START];
+	// Must match EXACTLY the order of enum mapiparm
+	bool dummy_start_bool;
+	bool tls;
+	bool autocommit;
+	bool dummy_end_bool;
+
+	long dummy_start_long;
+	long port;
+	long timezone;
+	long replysize;
+	long dummy_end_long;
+
+	char *dummy_start_string;
+	char *sock;
+	char *cert;
+	char *clientkey;
+	char *clientcert;
+	char *host;
+	char *database;
+	char *tableschema;
+	char *table;
+	char *certhash;
+	char *user;
+	char *password;
+	char *language;
+	char *schema;
+	char *binary;
+	char *dummy_end_string;
+
 	char **unknown_parameters;
 	size_t nr_unknown;
 	long user_generation;
@@ -124,7 +150,6 @@ struct mapi_params {
 	char certhash_digits_buffer[64 + 2 + 1]; // fit more than required plus trailing '\0'
 	bool validated;
 };
-
 
 mapi_params *mapi_params_create(void)
 {
@@ -138,39 +163,42 @@ mapi_params *mapi_params_create(void)
 		return NULL;
 	}
 	*mp = (mapi_params) {
-		.bool_params = {
-			[CP_TLS - CP__BOOL_START] = false,
-			[CP_AUTOCOMMIT - CP__BOOL_START] = true,
-		},
-		.long_params = {
-			[CP_PORT - CP__LONG_START] = -1,
-			[CP_TIMEZONE - CP__LONG_START] = LONG_MIN,
-			[CP_REPLYSIZE - CP__LONG_START] = 100,
-		},
-		.string_parameters = {
-			[CP_HOST - CP__STRING_START] = NULL,
-			[CP_DATABASE - CP__STRING_START] = NULL,
-			[CP_TABLESCHEMA - CP__STRING_START] = NULL,
-			[CP_TABLE - CP__STRING_START] = NULL,
-			[CP_CERTHASH - CP__STRING_START] = NULL,
-			[CP_USER - CP__STRING_START] = NULL,
-			[CP_PASSWORD - CP__STRING_START] = NULL,
-			[CP_LANGUAGE - CP__STRING_START] = sql,
-			[CP_SCHEMA - CP__STRING_START] = NULL,
-			[CP_BINARY - CP__STRING_START] = binary_on,
-		},
+		.tls = false,
+		.autocommit = true,
+
+		.port = -1 ,
+		.timezone = 0,
+		.replysize = 100,
+
+		.sock = NULL,
+		.cert = NULL,
+		.clientkey = NULL,
+		.clientcert = NULL,
+		.host = NULL,
+		.database = NULL,
+		.tableschema = NULL,
+		.table = NULL,
+		.certhash = NULL,
+		.user = NULL,
+		.password = NULL,
+		.language = sql,
+		.schema = NULL,
+		.binary = binary_on,
+
 		.unknown_parameters = NULL,
 		.nr_unknown = 0,
 		.validated = false,
 	};
+
 	return mp;
 }
 
 void
 mapi_params_destroy(mapi_params *mp)
 {
-	for (int i = 0; i < sizeof(mp->string_parameters) / sizeof(mp->string_parameters[0]); i++)
-		free(mp->string_parameters[i]);
+	for (char **p = &mp->dummy_start_string + 1; p < &mp->dummy_end_string; p++) {
+		free(*p);
+	}
 	for (int i = 0; i < mp->nr_unknown; i++) {
 		free(mp->unknown_parameters[2 * i]);
 		free(mp->unknown_parameters[2 * i + 1]);
@@ -182,9 +210,13 @@ mapi_params_destroy(mapi_params *mp)
 const char*
 mapi_param_string(const mapi_params *mp, mapiparm parm)
 {
-	if (parm < CP__STRING_START || parm >= CP__STRING_END)
+	if (parm < CP__STRING_START)
 		FATAL();
-	char *s = mp->string_parameters[parm - CP__STRING_START];
+	int i = parm - CP__STRING_START;
+	char * const *p = &mp->dummy_start_string + 1 + i;
+	if (p >=  &mp->dummy_end_string)
+		FATAL();
+	char *s = *p;
 	return s == NULL ? "" : s;
 }
 
@@ -194,7 +226,11 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 {
 	char *v;
 
-	if (parm < CP__STRING_START || parm >= CP__STRING_END)
+	if (parm < CP__STRING_START)
+		FATAL();
+	int i = parm - CP__STRING_START;
+	char **p = &mp->dummy_start_string + 1 + i;
+	if (p >=  &mp->dummy_end_string)
 		FATAL();
 
 	if (value && *value) {
@@ -205,16 +241,15 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 		v = NULL;
 	}
 
-	char **slot = &mp->string_parameters[parm - CP__STRING_START];
-	free(*slot);
-	*slot = v;
+	free(*p);
+	*p = v;
 
 	if (parm == CP_USER)
 		mp->user_generation++;
 	if (parm == CP_PASSWORD)
 		mp->password_generation++;
-	mp->validated = false;
 
+	mp->validated = false;
 	return NULL;
 }
 
@@ -222,18 +257,29 @@ mapi_param_set_string(mapi_params *mp, mapiparm parm, const char* value)
 long
 mapi_param_long(const mapi_params *mp, mapiparm parm)
 {
-	if (parm < CP__LONG_START || parm >= CP__LONG_END)
+	if (parm < CP__LONG_START)
 		FATAL();
-	return mp->long_params[parm - CP__LONG_START];
+	int i = parm - CP__LONG_START;
+	const long * p = &mp->dummy_start_long + 1 + i;
+	if (p >=  &mp->dummy_end_long)
+		FATAL();
+
+	return *p;
 }
 
 
 mapi_params_error
 mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 {
-	if (parm < CP__LONG_START || parm >= CP__LONG_END)
+	if (parm < CP__LONG_START)
 		FATAL();
-	mp->long_params[parm - CP__LONG_START] = value;
+	int i = parm - CP__LONG_START;
+	long *p = &mp->dummy_start_long + 1 + i;
+	if (p >=  &mp->dummy_end_long)
+		FATAL();
+
+	*p = value;
+
 	mp->validated = false;
 	return NULL;
 }
@@ -242,18 +288,27 @@ mapi_param_set_long(mapi_params *mp, mapiparm parm, long value)
 bool
 mapi_param_bool(const mapi_params *mp, mapiparm parm)
 {
-	if (parm < CP__BOOL_START || parm >= CP__BOOL_END)
+	if (parm < CP__BOOL_START)
 		FATAL();
-	return mp->bool_params[parm - CP__BOOL_START];
+	int i = parm - CP__BOOL_START;
+	const bool *p = &mp->dummy_start_bool + 1 + i;
+	if (p >=  &mp->dummy_end_bool)
+		FATAL();
+	return *p;
 }
 
 
 mapi_params_error
 mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value)
 {
-	if (parm < CP__BOOL_START || parm >= CP__BOOL_END)
+	if (parm < CP__BOOL_START)
 		FATAL();
-	mp->bool_params[parm - CP__BOOL_START] = value;
+	int i = parm - CP__BOOL_START;
+	bool *p = &mp->dummy_start_bool + 1 + i;
+	if (p >=  &mp->dummy_end_bool)
+		FATAL();
+	*p = value;
+
 	mp->validated = false;
 	return NULL;
 }
@@ -261,12 +316,15 @@ mapi_param_set_bool(mapi_params *mp, mapiparm parm, bool value)
 mapi_params_error
 mapi_param_from_text(mapi_params *mp, mapiparm parm, const char *text)
 {
-	if (parm >= CP__BOOL_START && parm < CP__BOOL_END) {
+	if (parm < CP__LONG_START) {
 		int b = parse_bool(text);
 		if (b < 0)
 			return "invalid boolean value";
 		return mapi_param_set_bool(mp, parm, b);
-	} else if (parm >= CP__LONG_START && parm < CP__LONG_END) {
+	} else if (parm >= CP__STRING_START) {
+		return mapi_param_set_string(mp, parm, text);
+	} else {
+		// it's a long
 		if (text[0] == '\0')
 			return "integer parameter cannot be empty string";
 		char *end;
@@ -274,20 +332,20 @@ mapi_param_from_text(mapi_params *mp, mapiparm parm, const char *text)
 		if (*end != '\0')
 			return "invalid integer";
 		return mapi_param_set_long(mp, parm, l);
-	} else if (parm >= CP__STRING_START && parm < CP__STRING_END) {
-		return mapi_param_set_string(mp, parm, text);
-	} else {
-		FATAL();
 	}
 }
 
 char *
 mapi_param_to_text(mapi_params *mp, mapiparm parm)
 {
-	if (parm >= CP__BOOL_START && parm < CP__BOOL_END) {
+	if (parm < CP__LONG_START) {
 		bool b = mapi_param_bool(mp, parm);
 		return strdup(b ? "true" : " false");
-	} else if (parm >= CP__LONG_START && parm < CP__LONG_END) {
+	} else if (parm >= CP__STRING_START) {
+		const char *s = mapi_param_string(mp, parm);
+		return strdup(s);
+	} else {
+		// it's a long
 		long l = mapi_param_long(mp, parm);
 		int n = 40;
 		char *buf = malloc(n);
@@ -295,11 +353,6 @@ mapi_param_to_text(mapi_params *mp, mapiparm parm)
 			return NULL;
 		snprintf(buf, n, "%ld", l);
 		return buf;
-	} else if (parm >= CP__STRING_START && parm < CP__STRING_END) {
-		const char *s = mapi_param_string(mp, parm);
-		return strdup(s);
-	} else {
-		FATAL();
 	}
 }
 
@@ -349,12 +402,9 @@ mapi_param_set_named(mapi_params *mp, bool allow_core, const char *key, const ch
 static bool
 empty(const mapi_params *mp, mapiparm parm)
 {
-	if (parm >= CP__STRING_START && parm < CP__STRING_END) {
-		const char *value = mapi_param_string(mp, parm);
-		assert(value);
-		return *value == '\0';
-	}
-	FATAL();
+	const char *value = mapi_param_string(mp, parm);
+	assert(value);
+	return *value == '\0';
 }
 
 static bool

@@ -1,26 +1,25 @@
 #include <stdbool.h>
 
+#define CP__BOOL_START (100)
+#define CP__LONG_START (200)
+#define CP__STRING_START (300)
+
 
 typedef enum mapiparm {
 		CP_UNKNOWN,
 		CP_IGNORE,
 
         // bool
-        CP_TLS,
-        #define CP__BOOL_START CP_TLS
+        CP_TLS = CP__BOOL_START,
         CP_AUTOCOMMIT,
-        #define CP__BOOL_END CP__LONG_START
 
         // long
-        CP_PORT,
-        #define CP__LONG_START CP_PORT
+        CP_PORT = CP__LONG_START,
         CP_TIMEZONE,
         CP_REPLYSIZE,
-        #define CP__LONG_END CP__STRING_START
 
         // string
-        CP_SOCK,
-        #define CP__STRING_START CP_SOCK
+        CP_SOCK = CP__STRING_START,
         CP_CERT,
         CP_CLIENTKEY,
         CP_CLIENTCERT,
@@ -34,9 +33,6 @@ typedef enum mapiparm {
         CP_LANGUAGE,
         CP_SCHEMA,
         CP_BINARY,
-        #define CP__STRING_END CP__NUMBER_OF_PARAMETERS
-
-        CP__NUMBER_OF_PARAMETERS,
 } mapiparm;
 
 
