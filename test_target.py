@@ -70,18 +70,23 @@ def split_tests(lines: List[Line]) -> List[Tuple[str, List[Line]]]:
     return tests
 
 
+# Note: we will programmatically add test methods to this file
+# based on the contents of tests.md.
 class TargetTests(TestCase):
 
-    def test_generic_tests(self):
-        filename = "tests.md"
-        self.run_test_script("tests.md")
-
     def test_dummy_tests(self):
+        """Convenience method. Run the tests from t.md if that exists."""
         filename = 't.md'
         if not os.path.exists(filename):
             raise unittest.SkipTest(f"{filename} does not exist")
-        self.run_test_script(filename)
+        lines = read_lines(open(filename), filename)
+        tests = split_tests(lines)
+        for name, test in tests:
+            self.run_test(test)
 
+    def xtest_generic_tests(self):
+        filename = "tests.md"
+        self.run_test_script("tests.md")
 
     def run_test_script(self, filename):
         lines = read_lines(open(filename), filename)
@@ -188,3 +193,15 @@ class TargetTests(TestCase):
                 pass
         if actual_value != expected_value:
             self.fail(f"Expected {key}={expected_value!r}, found {actual_value!r}")
+
+
+
+# Magic alert!
+# Read tests.md and generate test cases programmatically!
+filename = 'tests.md'
+lines = read_lines(open(filename), filename)
+tests = split_tests(lines)
+for name, test in tests:
+    def newlexicalscope(test):
+        return lambda this: this.run_test(test)
+    setattr(TargetTests, f"test_{name}", newlexicalscope(test))
