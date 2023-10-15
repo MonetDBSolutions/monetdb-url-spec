@@ -53,7 +53,7 @@ mparm_classify(mparm parm)
 
 
 /* returns NULL if not found, pointer to mparm if found */
-const mparm mparm_parse(const char *name);
+mparm mparm_parse(const char *name);
 const char *mparm_name(mparm parm);
 bool mparm_is_core(mparm parm);
 

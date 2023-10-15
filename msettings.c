@@ -22,7 +22,7 @@ int msetting_parse_bool(const char *text)
 		{ "on", true },
 		{ "off", false },
 	};
-	for (int i = 0; i < sizeof(variants) / sizeof(variants[0]); i++)
+	for (size_t i = 0; i < sizeof(variants) / sizeof(variants[0]); i++)
 		if (strcasecmp(text, variants[i].word) == 0)
 			return variants[i].value;
 	return -1;
@@ -57,7 +57,7 @@ by_name[] = {
 	{ .name="logfile", .parm=MP_IGNORE },
 };
 
-const mparm
+mparm
 mparm_parse(const char *name)
 {
 	int n = sizeof(by_name) / sizeof(by_name[0]);
@@ -199,7 +199,7 @@ msettings_destroy(msettings *mp)
 	for (char **p = &mp->dummy_start_string + 1; p < &mp->dummy_end_string; p++) {
 		free(*p);
 	}
-	for (int i = 0; i < mp->nr_unknown; i++) {
+	for (size_t i = 0; i < mp->nr_unknown; i++) {
 		free(mp->unknown_parameters[2 * i]);
 		free(mp->unknown_parameters[2 * i + 1]);
 	}
@@ -435,7 +435,7 @@ validate_certhash(msettings *mp)
 		return "expected certhash to start with '{sha256}'";
 	}
 
-	int i = 0;
+	size_t i = 0;
 	for (const char *r = certhash; *r != '\0'; r++) {
 		if (*r == ':')
 			continue;
