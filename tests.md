@@ -258,6 +258,7 @@ EXPECT port=-1
 EXPECT database=
 EXPECT tableschema=
 EXPECT table=
+EXPECT binary=on
 ```
 
 ### sock
