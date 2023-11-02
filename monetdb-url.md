@@ -331,6 +331,8 @@ parameters satisfy the following constraints.
 
 8. Parameter **port** must be -1 or in the range 1-65535.
 
+9. If **clientcert** is set, **clientkey** must also be set.
+
 TODO BEFORE 0.9: figure out exactly where in the source
 the name constraints on databases are defined.
 I only found something in merovingian.
@@ -389,6 +391,18 @@ Based on the given parameters, the implementation should compute a number of
      number such as 65535.
   3. if **binary** parses as the boolean False, **connect_binary** is 0.
 
+* Virtual parameter **connect_clientkey** is the path of a file holding the
+  private key used to authenticate to the server (MTLS).
+
+  1. It is always equal to **clientkey**.
+
+* Virtual parameter **connect_clientcert** is the path of a file holding the
+  certificates to offer together with key **connect_clientkey** when
+  authenticating to the server (MTLS).
+
+  1. If **clientcert** is not empty, use that.
+  2. Otherwise, use the value of **connect_clientkey**.
+
 
 ## Connecting
 
@@ -423,9 +437,8 @@ in the MonetDB source code.
 
 6. If **tls** is enabled, perform a TLS handshake.
 
-    * If **clientkey** is not empty, load the private key and possibly certificate chain
-      from that file.
-      Same for the certificate chain in **clientcert**.
+    * If **connect_clientkey** is not empty, load the private key from that file.
+      Same for the certificate chain in **connect_clientcert**.
       Offer them to the server as a client certificate. Abort with
       an error if key or certificates cannot be read.
 
