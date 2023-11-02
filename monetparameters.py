@@ -41,7 +41,10 @@ PARAMS = [
           core=True),
 
     Param("sock", "path", default='""',
-          descr="path to Unix Domain socket to connect to"),
+          descr="path to Unix domain socket to connect to"),
+
+    Param("sockdir", "path", default='"/tmp"',
+          descr="Directory for implicit Unix domain sockets (.s.monetdb.PORT)"),
 
     Param("cert", "path", default='""',
           descr="path to TLS certificate to authenticate server with"),

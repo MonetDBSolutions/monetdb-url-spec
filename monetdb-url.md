@@ -137,7 +137,7 @@ TODO BEFORE 0.9: field / property / attribute be consistent
 
 ## Parameters
 
-The following 24 parameters determine how the connection to MonetDB is
+The following 25 parameters determine how the connection to MonetDB is
 established. Most of them are used as a query parameter in the MonetDB URL,
 except for those that are marked as 'core'.
 Implementations SHOULD reject URLs in which parameters marked as '(core)' are
@@ -165,7 +165,8 @@ existing settings specific to monetdb-jdbc.
 | **database**    | string  | ""          | (core) name of database to connect to                                                   |
 | **tableschema** | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
 | **table**       | string  | ""          | (core) only used for REMOTE TABLE, otherwise unused                                     |
-| **sock**        | path    | ""          | path to Unix Domain socket to connect to                                                |
+| **sock**        | path    | ""          | path to Unix domain socket to connect to                                                |
+| **sockdir**     | path    | "/tmp"      | Directory for implicit Unix domain sockets (.s.monetdb.PORT)                            |
 | **cert**        | path    | ""          | path to TLS certificate to authenticate server with                                     |
 | **certhash**    | string  | ""          | hash of server TLS certificate must start with these hex digits; overrides cert         |
 | **clientkey**   | path    | ""          | path to TLS key (+certs) to authenticate with as client                                 |
@@ -350,7 +351,7 @@ Based on the given parameters, the implementation should compute a number of
   1. if **sock** is not empty, **connect_unix** has that value.
   2. otherwise, if **tls** is True, **connect_unix** is empty.
   3. otherwise, if **host** is empty, **connect_unix** is derived from the port
-     number as follows: <code>/tmp/.s.monetdb.<b>connect_port</b></code>.
+     number as follows: <code><b>sockdir</b>/.s.monetdb.<b>connect_port</b></code>.
   4. otherwise, **connect_unix** is empty.
 
 * Virtual parameter **connect_tcp** (a host name or ip number) indicates whether
@@ -483,8 +484,8 @@ When connecting to `monetdb:///dbname`, that is, with **database** set, **host**
 and **port** unset and **tls** off, special behavior kicks in, very succinctly
 described in [the comment in mapi.c][mapi_reconnect]:
 
-1. The implementation scans /tmp for sockets with names of the form
-   <code>/tmp/.s.monetdb.<b>port</b></code>, with <code><b>port</b></code> a
+1. The implementation scans **sockdir** for sockets with names of the form
+   <code><b>sockdir</b>/.s.monetdb.<b>port</b></code>, with <code><b>port</b></code> a
    valid port number. It also notes the owning uid of those sockets.
 
 2. The implementation orders the socket found in such a way sockets that are
