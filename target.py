@@ -18,7 +18,7 @@ from urllib.parse import parse_qsl, urlparse
 CORE = set(['tls', 'host', 'port', 'database', 'tableschema', 'table'])
 KNOWN = set([
     'tls', 'host', 'port', 'database', 'tableschema', 'table',
-    'sock', 'cert', 'certhash', 'clientkey', 'clientcert',
+    'sock', 'sockdir', 'cert', 'certhash', 'clientkey', 'clientcert',
     'user', 'password', 'language', 'autocommit', 'schema', 'timezone',
     'binary', 'replysize', 'fetchsize', 'maxprefetch']
 )
@@ -26,7 +26,7 @@ IGNORED = set(['hash', 'debug', 'logfile'])
 VIRTUAL = set([
     'connect_scan', 'connect_unix', 'connect_tcp', 'connect_port',
     'connect_tls_verify', 'connect_certhash_digits',
-    'connect_binary'
+    'connect_binary', 'connect_clientkey', 'connect_clientcert',
 ])
 
 _BOOLEANS = dict(
@@ -46,6 +46,7 @@ _DEFAULTS = dict(
             tableschema="",
             table="",
             sock="",
+            sockdir="/tmp",
             cert="",
             certhash="",
             clientkey="",
@@ -123,6 +124,7 @@ class Target:
     tableschema = urlparam('tableschema', 'string', 'only used for REMOTE TABLE, otherwise unused')
     table = urlparam('table', 'string', 'only used for REMOTE TABLE, otherwise unused')
     sock = urlparam('sock', 'path', 'path to Unix Domain socket to connect to')
+    sockdir = urlparam('sockdir', 'path', 'directory where implicit Unix domain sockets are created')
     cert = urlparam(
         'cert', 'path', 'path to TLS certificate to authenticate server with')
     certhash = urlparam(
@@ -332,6 +334,10 @@ class Target:
         if self.port != -1 and not 1 <= self.port <= 65535:
             raise ValueError(f"Invalid port number: {self.port}")
 
+        # 9. If **clientcert** is set, **clientkey** must also be set.
+        if self.clientcert and not self.clientkey:
+            raise ValueError("clientcert can only be used together with clientkey")
+
     @property
     def connect_scan(self):
         if not self.database:
@@ -349,7 +355,7 @@ class Target:
         if self.tls:
             return ""
         if self.host == "":
-            return f"/tmp/.s.monetdb.{self.connect_port}"
+            return f"{self.sockdir}/.s.monetdb.{self.connect_port}"
         return ""
 
     @property
@@ -377,6 +383,14 @@ class Target:
         return "system"
 
     @property
+    def connect_clientkey(self):
+        return self.clientkey
+
+    @property
+    def connect_clientcert(self):
+        return self.clientcert or self.clientkey
+
+    @property
     def connect_binary(self):
         try:
             return int(self.binary)
@@ -392,7 +406,7 @@ class Target:
         return m.group(1).lower().replace(':', '')
 
 _UNQUOTE_PATTERN = re.compile(b"[%](.?.?)")
-_DATABASE_PATTERN = re.compile("^[A-Za-z0-9_][-A-Za-z0-9_]*$")
+_DATABASE_PATTERN = re.compile("^[A-Za-z0-9_][-A-Za-z0-9_.]*$")
 _HASH_PATTERN = re.compile(r"^[{]sha256[}]([0-9a-fA-F:]+)$")
 
 def _unquote_fun(m) -> bytes:
