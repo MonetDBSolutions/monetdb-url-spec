@@ -202,6 +202,10 @@ filename = 'tests.md'
 lines = read_lines(open(filename), filename)
 tests = split_tests(lines)
 for name, test in tests:
+    if test:
+        line_nr = f"line_{test[0].nr}_"
+    else:
+        line_nr = ""
     def newlexicalscope(test):
         return lambda this: this.run_test(test)
-    setattr(TargetTests, f"test_{name}", newlexicalscope(test))
+    setattr(TargetTests, f"test_{line_nr}{name}", newlexicalscope(test))
