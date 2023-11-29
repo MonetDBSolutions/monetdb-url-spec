@@ -836,6 +836,7 @@ EXPECT valid=no
 ```
 
 ```test
+SET database=demo
 SET tableschema=
 EXPECT valid=yes
 SET tableschema=banana
@@ -849,6 +850,7 @@ EXPECT valid=yes
 ```
 
 ```test
+SET database=demo
 SET tableschema=with/slash
 EXPECT valid=no
 SET tableschema=-flag
@@ -866,6 +868,8 @@ EXPECT valid=no
 ```
 
 ```test
+SET database=demo
+SET tableschema=sys
 SET table=
 EXPECT valid=yes
 SET table=banana
@@ -879,6 +883,8 @@ EXPECT valid=yes
 ```
 
 ```test
+SET database=demo
+SET tableschema=sys
 SET table=with/slash
 EXPECT valid=no
 SET table=-flag

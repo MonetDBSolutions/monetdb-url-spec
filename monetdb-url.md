@@ -327,8 +327,10 @@ parameters satisfy the following constraints.
 6. If **tls** is 'off', **cert** and **certhash** must be 'off' as well.
 
 7. Parameters **database**, **tableschema** and **table** must consist only of
-   upper- and lowercase letters, digits, dashes and underscores. They must not
+   upper- and lowercase letters, digits, periods, dashes and underscores. They must not
    start with a dash.
+   If **table** is not empty, **tableschema** must also not be empty.
+   If **tableschema** is not empty, **database** must also not be empty.
 
 8. Parameter **port** must be -1 or in the range 1-65535.
 
