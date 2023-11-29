@@ -177,14 +177,14 @@ EXPECT database=demo
 ```
 
 ```test
-ACCEPT monetdbs://mdb.example.com/demo?certhash={sha256}fb:67:20:aa:00:9f:33:4c
+ACCEPT monetdbs://mdb.example.com/demo?certhash=sha256:fb:67:20:aa:00:9f:33:4c
 EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=mdb.example.com
 EXPECT connect_port=50000
 EXPECT tls=on
 EXPECT connect_tls_verify=hash
-EXPECT certhash={sha256}fb:67:20:aa:00:9f:33:4c
+EXPECT certhash=sha256:fb:67:20:aa:00:9f:33:4c
 EXPECT connect_certhash_digits=fb6720aa009f334c
 EXPECT database=demo
 ```
@@ -314,35 +314,31 @@ EXPECT cert=C:\TEMP\cert.pem
 
 ```test
 EXPECT certhash=
-ACCEPT monetdbs:///?certhash={sha256}001122ff
-ACCEPT monetdbs:///?certhash={sha256}00:11:22:ff
-ACCEPT monetdbs:///?certhash={sha256}::::aa::ff:::::
-ACCEPT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+ACCEPT monetdbs:///?certhash=sha256:001122ff
+ACCEPT monetdbs:///?certhash=sha256:00:11:22:ff
+ACCEPT monetdbs:///?certhash=sha256:::::aa::ff:::::
+ACCEPT monetdbs:///?certhash=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 ```
 
 This string of hexdigits is longer than the length of a SHA-256 digest.
 It still parses, it will just never match.
 
 ```test
-ACCEPT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8550
-ACCEPT monetdbs:///?certhash={sha256}e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855000000000000000000000000000000000000000001
+ACCEPT monetdbs:///?certhash=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8550
+ACCEPT monetdbs:///?certhash=sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855000000000000000000000000000000000000000001
 ```
 
 ```test
 REJECT monetdbs:///?certhash=001122ff
-REJECT monetdbs:///?certhash={Sha256}001122ff
-REJECT monetdbs:///?certhash=sha256:001122ff
-REJECT monetdbs:///?certhash={sha256}001122gg
-REJECT monetdbs:///?certhash={sha256}}001122
-REJECT monetdbs:///?certhash={{sha256}001122
-REJECT monetdbs:///?certhash={{sha256}
-REJECT monetdbs:///?certhash={sha
-REJECT monetdbs:///?certhash={sha1}aabbcc
-REJECT monetdbs:///?certhash={sha1}
-REJECT monetdbs:///?certhash={sha1}X
-REJECT monetdbs:///?certhash={sha99}aabbcc
-REJECT monetdbs:///?certhash={sha99}
-REJECT monetdbs:///?certhash={sha99}X
+REJECT monetdbs:///?certhash=Sha256:001122ff
+REJECT monetdbs:///?certhash=sha256:001122gg
+REJECT monetdbs:///?certhash=sha
+REJECT monetdbs:///?certhash=sha1:aabbcc
+REJECT monetdbs:///?certhash=sha1:
+REJECT monetdbs:///?certhash=sha1:X
+REJECT monetdbs:///?certhash=sha99:aabbcc
+REJECT monetdbs:///?certhash=sha99:
+REJECT monetdbs:///?certhash=sha99:X
 ```
 
 ### clientkey, clientcert
@@ -940,12 +936,12 @@ EXPECT valid=no
 ```test
 ACCEPT monetdbs:///?cert=/a/path
 EXPECT connect_tls_verify=cert
-ACCEPT monetdbs:///?certhash={sha256}aa
+ACCEPT monetdbs:///?certhash=sha256:aa
 EXPECT connect_tls_verify=hash
-ACCEPT monetdbs:///?cert=/a/path&certhash={sha256}aa
+ACCEPT monetdbs:///?cert=/a/path&certhash=sha256:aa
 EXPECT connect_tls_verify=hash
 REJECT monetdb:///?cert=/a/path
-REJECT monetdb:///?certhash={sha256}aa
+REJECT monetdb:///?certhash=sha256:aa
 ```
 
 ```test
@@ -959,7 +955,7 @@ EXPECT connect_tls_verify=
 ```test
 SET tls=off
 SET cert=
-SET certhash={sha256}abcdef
+SET certhash=sha256:abcdef
 EXPECT valid=no
 ```
 
@@ -973,7 +969,7 @@ EXPECT valid=no
 ```test
 SET tls=off
 SET cert=/foo
-SET certhash={sha256}abcdef
+SET certhash=sha256:abcdef
 EXPECT valid=no
 ```
 
@@ -988,7 +984,7 @@ EXPECT connect_tls_verify=system
 ```test
 SET tls=on
 SET cert=
-SET certhash={sha256}abcdef
+SET certhash=sha256:abcdef
 EXPECT valid=yes
 EXPECT connect_tls_verify=hash
 ```
@@ -1004,7 +1000,7 @@ EXPECT connect_tls_verify=cert
 ```test
 SET tls=on
 SET cert=/foo
-SET certhash={sha256}abcdef
+SET certhash=sha256:abcdef
 EXPECT valid=yes
 EXPECT connect_tls_verify=hash
 ```

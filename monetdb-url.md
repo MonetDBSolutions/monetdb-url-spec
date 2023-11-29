@@ -119,11 +119,11 @@ TODO BEFORE 0.9: field / property / attribute be consistent
     Fail if the certificate is not present in the indicated location on the client host.
   </dd>
 
-  <dt><code>monetdbs://mdb.example.com/demo?certhash={sha256}fb:67:20:aa:00:9f:33:4c</code></dt>
+  <dt><code>monetdbs://mdb.example.com/demo?certhash=sha256:fb:67:20:aa:00:9f:33:4c</code></dt>
   <dd>
     Connect to mdb.example.com, secure the connection with TLS.  Do not
     verify the certificate chain but require the hash of the certificate to start with the given hexadecimal digits.
-    The hash algorithm (always SHA-256) is given between braces.
+    The hash is prefixed with the hash algorithm name, currently always SHA-256.
     The colons are optional.
   </dd>
 
@@ -321,7 +321,7 @@ parameters satisfy the following constraints.
 
 4. If **sock** is not empty, **tls** must be 'off'.
 
-5. If **certhash** is not empty, it must be of the form `{sha256}hexdigits`
+5. If **certhash** is not empty, it must be of the form `sha256:hexdigits`
    where hexdigits is a non-empty sequence of 0-9, a-f, A-F and colons.
 
 6. If **tls** is 'off', **cert** and **certhash** must be 'off' as well.
