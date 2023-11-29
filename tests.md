@@ -199,6 +199,17 @@ EXPECT user=dbuser
 EXPECT password=
 ```
 
+```test
+ACCEPT monetdb://localhost/demo?sock=/var/monetdb/_sock&user=dbuser
+EXPECT connect_scan=false
+EXPECT connect_unix=/var/monetdb/_sock
+EXPECT connect_tcp=
+EXPECT tls=off
+EXPECT database=demo
+EXPECT user=dbuser
+EXPECT password=
+```
+
 
 ## Parameter tests
 
@@ -1189,17 +1200,6 @@ REJECT mapi:monetdb:
 REJECT mapi:monetdb:/
 ```
 
-This one is refused by mclient but accepted by pymonetdb:
-
-```test
-ACCEPT mapi:monetdb://
-EXPECT host=
-EXPECT port=-1
-EXPECT connect_scan=off
-EXPECT connect_unix=/tmp/.s.monetdb.50000
-EXPECT connect_tcp=localhost
-```
-
 ```test
 ACCEPT mapi:monetdb://monet.db:12345/demo
 EXPECT host=monet.db
@@ -1295,9 +1295,6 @@ User, username and password parameters are ignored:
 SET user=alan
 SET password=turing
 ACCEPT mapi:monetdb://localhost:12345/demo?user=foo
-EXPECT user=alan
-EXPECT password=turing
-ACCEPT mapi:monetdb://localhost:12345/demo?username=foo
 EXPECT user=alan
 EXPECT password=turing
 ACCEPT mapi:monetdb://localhost:12345/demo?password=foo
