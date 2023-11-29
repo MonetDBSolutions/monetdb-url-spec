@@ -45,8 +45,8 @@ TODO before 1.0 does the above explanation make sense?
 
 ```test
 ACCEPT monetdb:///demo
-EXPECT connect_scan=true
 EXPECT database=demo
+EXPECT connect_scan=true
 ```
 
 ```test
@@ -115,6 +115,7 @@ EXPECT database=demo
 
 ```test
 ACCEPT monetdb://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:12345/demo
+EXPECT host=2001:0db8:85a3:0000:0000:8a2e:0370:7334
 EXPECT connect_scan=false
 EXPECT connect_unix=
 EXPECT connect_tcp=2001:0db8:85a3:0000:0000:8a2e:0370:7334
@@ -528,6 +529,9 @@ REJECT monetdb:///?binary=banana
 
 ```test
 REJECT monetdb:///?banana=bla
+```
+
+```test
 ACCEPT monetdb:///?ban_ana=bla
 ACCEPT monetdb:///?hash=sha1
 ACCEPT monetdb:///?debug=true
@@ -579,13 +583,20 @@ Rule: fetchsize is an alias for replysize, last occurrence counts
 
 ```test
 SET replysize=200
-SET fetchsize=300
-EXPECT replysize=300
 ACCEPT monetdb:///?fetchsize=400
 EXPECT replysize=400
 ACCEPT monetdb:///?replysize=500&fetchsize=600
 EXPECT replysize=600
 ```
+
+```test
+NOT jdbc
+SET replysize=200
+SET fetchsize=300
+EXPECT replysize=300
+```
+
+
 
 Rule: parsing a URL sets all of tls, host, port and database
 even if left out of the URL
@@ -649,14 +660,14 @@ EXPECT password=
 General form
 
 ```test
+REJECT monetdb:
+REJECT monetdbs:
+REJECT monetdb:/
+REJECT monetdbs:/
 ACCEPT monetdb://
 ACCEPT monetdbs://
 ACCEPT monetdb:///
 ACCEPT monetdbs:///
-REJECT monetdb:/
-REJECT monetdbs:/
-REJECT monetdb:
-REJECT monetdbs:
 ```
 
 
