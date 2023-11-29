@@ -281,6 +281,9 @@ Not supported on Windows, but they should still parse.
 EXPECT sock=
 ACCEPT monetdb:///?sock=/tmp/sock
 EXPECT sock=/tmp/sock
+ACCEPT monetdb:///?sock=C:/TEMP/sock
+EXPECT sock=C:/TEMP/sock
+NOT jdbc
 ACCEPT monetdb:///?sock=C:\TEMP\sock
 EXPECT sock=C:\TEMP\sock
 ```
@@ -300,6 +303,9 @@ EXPECT connect_unix=/tmp/nonstandard/.s.monetdb.50000
 EXPECT cert=
 ACCEPT monetdbs:///?cert=/tmp/cert.pem
 EXPECT cert=/tmp/cert.pem
+ACCEPT monetdbs:///?cert=C:/TEMP/cert.pem
+EXPECT cert=C:/TEMP/cert.pem
+NOT jdbc
 ACCEPT monetdbs:///?cert=C:\TEMP\cert.pem
 EXPECT cert=C:\TEMP\cert.pem
 ```
@@ -346,6 +352,9 @@ EXPECT clientkey=
 EXPECT clientcert=
 ACCEPT monetdbs:///?clientkey=/tmp/clientkey.pem
 EXPECT clientkey=/tmp/clientkey.pem
+ACCEPT monetdbs:///?clientkey=C:/TEMP/clientkey.pem
+EXPECT clientkey=C:/TEMP/clientkey.pem
+NOT jdbc
 ACCEPT monetdbs:///?clientkey=C:\TEMP\clientkey.pem
 EXPECT clientkey=C:\TEMP\clientkey.pem
 ```
@@ -380,6 +389,9 @@ SET clientkey=dummy
 EXPECT clientcert=
 ACCEPT monetdbs:///?clientcert=/tmp/clientcert.pem
 EXPECT clientcert=/tmp/clientcert.pem
+ACCEPT monetdbs:///?clientcert=C:/TEMP/clientcert.pem
+EXPECT clientcert=C:/TEMP/clientcert.pem
+NOT jdbc
 ACCEPT monetdbs:///?clientcert=C:\TEMP\clientcert.pem
 EXPECT clientcert=C:\TEMP\clientcert.pem
 ```
